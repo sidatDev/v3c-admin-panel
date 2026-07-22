@@ -189,16 +189,26 @@ export default function ManageWidgetPage() {
     updateWidgetMutation.mutate({ allowedCountries: updated });
   };
 
-  const playVoiceSample = (sampleUrl: string, voiceId: string) => {
+  const playVoiceSample = async (sampleUrl: string, voiceId: string) => {
     try {
-      const audio = new Audio(sampleUrl);
       setPlayingVoice(voiceId);
-      audio.play().catch(() => {
-        toast.info(`Simulating OpenAI voice preview for '${voiceId}'`);
-      });
-      audio.onended = () => setPlayingVoice(null);
+      const apiHost = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const previewUrl = `${apiHost}/api/widget/voice-preview?voice=${voiceId}`;
+
+      const res = await fetch(previewUrl, { credentials: 'include' });
+      if (!res.ok) throw new Error('Preview fetch failed');
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
+
+      const audio = new Audio(audioUrl);
+      await audio.play();
+      audio.onended = () => {
+        setPlayingVoice(null);
+        URL.revokeObjectURL(audioUrl);
+      };
     } catch {
-      toast.info(`Previewing '${voiceId}' voice sample`);
+      toast.error(`Failed to play live OpenAI voice sample for '${voiceId}'`);
+      setPlayingVoice(null);
     }
   };
 
