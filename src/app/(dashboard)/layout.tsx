@@ -25,6 +25,9 @@ import {
   User,
   ChevronRight,
   Sparkles,
+  BarChart3,
+  Activity,
+  Cpu,
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -47,9 +50,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Group menu items based on sidebar design
   const mainNavItems: SidebarItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Conversations', href: '/conversations', icon: MessageSquare },
-    { name: 'Agent Inbox', href: '/agent-inbox', icon: Inbox, isComingSoon: true },
-    { name: 'Leads', href: '/leads', icon: UserCheck, isComingSoon: true },
+    { name: 'Agent Inbox (CRM)', href: '/agent-inbox', icon: Inbox },
+    { name: 'AI Agents & Retrieval', href: '/ai-agents', icon: Cpu },
+    { name: 'AI Logs & Telemetry', href: '/ai-logs', icon: Activity },
+    { name: 'Leads', href: '/leads', icon: UserCheck },
     { 
       name: 'Manage Widget', 
       href: '/manage-widget', 
@@ -111,7 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       resource: 'domain',
       action: 'read'
     },
-    { name: 'Billing', href: '/billing', icon: CreditCard, isComingSoon: true },
+    { name: 'Billing', href: '/billing', icon: CreditCard },
   ];
 
   // Helper to filter sidebar items by permission
