@@ -357,16 +357,20 @@ export default function AiAgentsPage() {
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Voice Model</label>
                     <select
-                      value={selectedAgent.voice || 'alloy'}
+                      value={selectedAgent.voice || 'shimmer'}
                       onChange={(e) => setSelectedAgent({ ...selectedAgent, voice: e.target.value })}
                       className="w-full rounded-xl bg-white border border-slate-300 px-4 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
                     >
+                      <option value="shimmer">Shimmer (Clear, Calm — Female)</option>
                       <option value="alloy">Alloy (Neutral, Conversational)</option>
                       <option value="echo">Echo (Warm, Professional)</option>
-                      <option value="fable">Fable (Expressive, Friendly)</option>
-                      <option value="onyx">Onyx (Deep, Formal)</option>
-                      <option value="nova">Nova (Energetic, Modern)</option>
-                      <option value="shimmer">Shimmer (Clear, Calm)</option>
+                      <option value="ash">Ash (Expressive)</option>
+                      <option value="ballad">Ballad (Smooth)</option>
+                      <option value="coral">Coral (Warm)</option>
+                      <option value="sage">Sage (Calm)</option>
+                      <option value="verse">Verse (Dynamic)</option>
+                      <option value="marin">Marin (Friendly)</option>
+                      <option value="cedar">Cedar (Deep)</option>
                     </select>
                   </div>
 
