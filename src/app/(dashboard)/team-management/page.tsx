@@ -14,6 +14,7 @@ interface TeamMemberItem {
   status: string;
   roleName: string;
   roleId: string | null;
+  domainId: number | null;
   createdAt: string;
 }
 
@@ -35,6 +36,7 @@ export default function TeamManagementPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [roleId, setRoleId] = useState('');
+  const [domainId, setDomainId] = useState('');
 
   // Fetch Team
   const { data: team = [], isLoading, refetch, isRefetching } = useQuery<TeamMemberItem[]>({
@@ -54,6 +56,15 @@ export default function TeamManagementPage() {
     },
   });
 
+  // Fetch Domains for scoping select preset
+  const { data: domains = [] } = useQuery<{ id: number; domain: string }[]>({
+    queryKey: ['domain-presets-team'],
+    queryFn: async () => {
+      const res = await api.get<{ status: string; data: any[] }>('/api/ai-search');
+      return res.data;
+    },
+  });
+
   const addMemberMutation = useMutation({
     mutationFn: async (payload: any) => {
       const res = await api.post('/api/team', payload);
@@ -68,6 +79,7 @@ export default function TeamManagementPage() {
       setPhone('');
       setPassword('');
       setRoleId('');
+      setDomainId('');
     },
     onError: (error) => {
       if (error instanceof ApiError) toast.error(error.message);
@@ -193,6 +205,7 @@ export default function TeamManagementPage() {
                         onClick={() => {
                           setSelectedUser(member);
                           setRoleId(member.roleId || '');
+                          setDomainId(member.domainId?.toString() || '');
                           setIsEditModalOpen(true);
                         }}
                         className="text-slate-400 hover:text-indigo-600 p-1"
@@ -262,6 +275,20 @@ export default function TeamManagementPage() {
               </select>
             </div>
 
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Lock to Domain (RBAC Scope)</label>
+              <select
+                value={domainId}
+                onChange={(e) => setDomainId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs text-slate-900 outline-none focus:border-indigo-500"
+              >
+                <option value="">Full Tenant Access (No Domain Lock)</option>
+                {domains.map((d) => (
+                  <option key={d.id} value={d.id.toString()}>{d.domain}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -271,8 +298,18 @@ export default function TeamManagementPage() {
               </button>
               <button
                 onClick={() => {
-                  if (name && email) addMemberMutation.mutate({ name, email, password, roleId, phone });
-                  else toast.error('Please enter name and email.');
+                  if (name && email) {
+                    addMemberMutation.mutate({ 
+                      name, 
+                      email, 
+                      password, 
+                      roleId, 
+                      phone, 
+                      domainId: domainId || null 
+                    });
+                  } else {
+                    toast.error('Please enter name and email.');
+                  }
                 }}
                 disabled={addMemberMutation.isPending}
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
@@ -304,6 +341,20 @@ export default function TeamManagementPage() {
               </select>
             </div>
 
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Lock to Domain (RBAC Scope)</label>
+              <select
+                value={domainId}
+                onChange={(e) => setDomainId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs text-slate-900 outline-none focus:border-indigo-500"
+              >
+                <option value="">Full Tenant Access (No Domain Lock)</option>
+                {domains.map((d) => (
+                  <option key={d.id} value={d.id.toString()}>{d.domain}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setIsEditModalOpen(false)}
@@ -313,7 +364,10 @@ export default function TeamManagementPage() {
               </button>
               <button
                 onClick={() => {
-                  updateMemberMutation.mutate({ id: selectedUser.id, payload: { roleId } });
+                  updateMemberMutation.mutate({ 
+                    id: selectedUser.id, 
+                    payload: { roleId, domainId: domainId || null } 
+                  });
                 }}
                 disabled={updateMemberMutation.isPending}
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"

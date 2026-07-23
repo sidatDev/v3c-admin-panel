@@ -24,6 +24,7 @@ import {
   FileText,
   User,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -78,6 +79,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Business Persona', href: '/knowledge-base/persona' },
         { name: 'Search Tester', href: '/knowledge-base/search-tester' },
       ]
+    },
+    {
+      name: 'AI Search',
+      href: '/ai-search',
+      icon: Sparkles,
+      resource: 'ai_search',
+      action: 'view'
     },
     { 
       name: 'Team Management', 

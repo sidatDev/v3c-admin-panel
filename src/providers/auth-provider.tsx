@@ -12,6 +12,7 @@ interface User {
   email: string;
   role: string;
   tenantId: string;
+  domainId: number | null;
   companyName: string | null;
   image: string | null;
 }
