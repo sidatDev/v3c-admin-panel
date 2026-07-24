@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/providers/auth-provider';
 import { toast } from 'sonner';
 import {
   Cpu,
@@ -46,9 +47,18 @@ interface AgentItem {
     fallbackMessageUrdu: string;
   };
   AgentTopicLink?: { id: string; title: string; url: string; displayOrder: number }[];
+  voiceSettings?: {
+    vadThreshold?: number;
+    vadSilenceDurationMs?: number;
+    vadPrefixPaddingMs?: number;
+    voiceResponseDelayMs?: number;
+    minTranscriptLength?: number;
+    minWordCount?: number;
+  };
 }
 
 export default function AiAgentsPage() {
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<AgentItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,8 +71,13 @@ export default function AiAgentsPage() {
   const [newLinkUrl, setNewLinkUrl] = useState('');
 
   useEffect(() => {
-    loadAgents();
-  }, []);
+    if (isAuthLoading) return;
+    if (isAuthenticated) {
+      loadAgents();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthLoading, isAuthenticated]);
 
   async function loadAgents() {
     try {
@@ -98,6 +113,7 @@ export default function AiAgentsPage() {
         autoLanguageDetection: selectedAgent.autoLanguageDetection,
         supportedLanguages: selectedAgent.supportedLanguages,
         accentColor: selectedAgent.accentColor,
+        voiceSettings: selectedAgent.voiceSettings,
         isActive: selectedAgent.isActive,
       });
 
@@ -361,16 +377,18 @@ export default function AiAgentsPage() {
                       onChange={(e) => setSelectedAgent({ ...selectedAgent, voice: e.target.value })}
                       className="w-full rounded-xl bg-white border border-slate-300 px-4 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
                     >
-                      <option value="shimmer">Shimmer (Clear, Calm — Female)</option>
-                      <option value="alloy">Alloy (Neutral, Conversational)</option>
-                      <option value="echo">Echo (Warm, Professional)</option>
-                      <option value="ash">Ash (Expressive)</option>
-                      <option value="ballad">Ballad (Smooth)</option>
-                      <option value="coral">Coral (Warm)</option>
-                      <option value="sage">Sage (Calm)</option>
-                      <option value="verse">Verse (Dynamic)</option>
-                      <option value="marin">Marin (Friendly)</option>
-                      <option value="cedar">Cedar (Deep)</option>
+                      <option value="shimmer">Shimmer (Female - Clear, Calm)</option>
+                      <option value="alloy">Alloy (Female - Neutral, Conversational)</option>
+                      <option value="echo">Echo (Male - Warm, Professional)</option>
+                      <option value="ash">Ash (Male - Expressive)</option>
+                      <option value="ballad">Ballad (Male - Smooth)</option>
+                      <option value="coral">Coral (Female - Warm)</option>
+                      <option value="sage">Sage (Female - Calm)</option>
+                      <option value="verse">Verse (Male - Dynamic)</option>
+                      <option value="marin">Marin (Female - Friendly)</option>
+                      <option value="cedar">Cedar (Male - Deep)</option>
+                      <option value="nova">Nova (Female - Energetic)</option>
+                      <option value="onyx">Onyx (Male - Authoritative)</option>
                     </select>
                   </div>
 
@@ -440,6 +458,101 @@ export default function AiAgentsPage() {
                     })}
                   </div>
                   <p className="mt-1 text-xs text-slate-500">Enable Urdu and English multi-lingual support for voice and text chat.</p>
+                </div>
+
+                {/* Voice Sensitivity & Pipeline Timing Controls */}
+                <div className="border-t border-slate-200 pt-6 space-y-4">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                    <Sliders className="h-4 w-4 text-indigo-600" /> Voice Sensitivity & Pipeline Timing
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        VAD Noise Sensitivity Threshold ({selectedAgent.voiceSettings?.vadThreshold ?? 0.65})
+                      </label>
+                      <p className="text-[11px] text-slate-500 mb-2">Higher values (0.65 - 0.80) ignore coughing, breathing & background noise.</p>
+                      <input
+                        type="range"
+                        min="0.40"
+                        max="0.90"
+                        step="0.05"
+                        value={selectedAgent.voiceSettings?.vadThreshold ?? 0.65}
+                        onChange={(e) => setSelectedAgent({
+                          ...selectedAgent,
+                          voiceSettings: {
+                            ...(selectedAgent.voiceSettings || {}),
+                            vadThreshold: parseFloat(e.target.value)
+                          }
+                        })}
+                        className="w-full accent-indigo-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        End-of-Speech Silence Duration ({selectedAgent.voiceSettings?.vadSilenceDurationMs ?? 800} ms)
+                      </label>
+                      <p className="text-[11px] text-slate-500 mb-2">Silence window required before AI considers user turn complete.</p>
+                      <input
+                        type="range"
+                        min="300"
+                        max="1500"
+                        step="50"
+                        value={selectedAgent.voiceSettings?.vadSilenceDurationMs ?? 800}
+                        onChange={(e) => setSelectedAgent({
+                          ...selectedAgent,
+                          voiceSettings: {
+                            ...(selectedAgent.voiceSettings || {}),
+                            vadSilenceDurationMs: parseInt(e.target.value, 10)
+                          }
+                        })}
+                        className="w-full accent-indigo-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        Natural Thinking Delay ({selectedAgent.voiceSettings?.voiceResponseDelayMs ?? 600} ms)
+                      </label>
+                      <p className="text-[11px] text-slate-500 mb-2">Natural pause before AI starts speaking after user turn.</p>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1500"
+                        step="100"
+                        value={selectedAgent.voiceSettings?.voiceResponseDelayMs ?? 600}
+                        onChange={(e) => setSelectedAgent({
+                          ...selectedAgent,
+                          voiceSettings: {
+                            ...(selectedAgent.voiceSettings || {}),
+                            voiceResponseDelayMs: parseInt(e.target.value, 10)
+                          }
+                        })}
+                        className="w-full accent-indigo-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                        Minimum Word Count Gate ({selectedAgent.voiceSettings?.minWordCount ?? 2} words)
+                      </label>
+                      <p className="text-[11px] text-slate-500 mb-2">Ignores single-word noises ("aaa", "hmm") below this word count.</p>
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        value={selectedAgent.voiceSettings?.minWordCount ?? 2}
+                        onChange={(e) => setSelectedAgent({
+                          ...selectedAgent,
+                          voiceSettings: {
+                            ...(selectedAgent.voiceSettings || {}),
+                            minWordCount: parseInt(e.target.value, 10) || 2
+                          }
+                        })}
+                        className="w-full rounded-xl bg-white border border-slate-300 px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

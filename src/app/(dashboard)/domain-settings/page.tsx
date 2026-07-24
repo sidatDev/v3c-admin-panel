@@ -37,6 +37,7 @@ export default function DomainSettingsPage() {
   const [accentColor, setAccentColor] = useState('#4F46E5');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [selectedDomainId, setSelectedDomainId] = useState<string>('');
 
   // Form states for New Website
   const [newDomain, setNewDomain] = useState('');
@@ -56,6 +57,7 @@ export default function DomainSettingsPage() {
       const formData = new FormData();
       if (companyName) formData.append('companyName', companyName);
       if (accentColor) formData.append('accentColor', accentColor);
+      if (selectedDomainId) formData.append('domainId', selectedDomainId);
       if (logoFile) formData.append('logo', logoFile);
       if (faviconFile) formData.append('favicon', faviconFile);
 
@@ -280,6 +282,25 @@ export default function DomainSettingsPage() {
 
           <div className="space-y-4 max-w-lg">
             <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Target Website / Registered Domain</label>
+              <select
+                value={selectedDomainId}
+                onChange={(e) => setSelectedDomainId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs text-slate-900 outline-none focus:border-indigo-500"
+              >
+                <option value="">-- Apply to All Registered Websites (Global Default) --</option>
+                {websites.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.domain} (ID: {w.id})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Select a specific domain (e.g. efuinsurance.com) to scope this brand logo, company name, and accent color.
+              </p>
+            </div>
+
+            <div>
               <label className="text-xs font-semibold text-slate-700 block mb-1">Company / Brand Name</label>
               <input
                 type="text"
@@ -287,6 +308,24 @@ export default function DomainSettingsPage() {
                 onChange={(e) => setCompanyName(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
               />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand Accent Color</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="h-10 w-12 rounded-lg border border-slate-200 p-1 cursor-pointer bg-white"
+                />
+                <input
+                  type="text"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className="w-32 rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono text-slate-900 outline-none focus:border-indigo-500 uppercase"
+                />
+              </div>
             </div>
 
             <div>

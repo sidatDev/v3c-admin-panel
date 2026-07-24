@@ -12,6 +12,7 @@ interface User {
   email: string;
   role: string;
   tenantId: string;
+  tenantSlug?: string;
   domainId: number | null;
   companyName: string | null;
   image: string | null;
@@ -70,7 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['auth-user'], data);
-      router.push('/dashboard');
+      const targetSlug = data.user?.tenantSlug || 'v3c-system-tenant';
+      router.push(`/${targetSlug}/dashboard`);
     },
   });
 
@@ -82,7 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['auth-user'], data);
-      router.push('/dashboard');
+      const targetSlug = data.user?.tenantSlug || 'v3c-system-tenant';
+      router.push(`/${targetSlug}/dashboard`);
     },
   });
 
@@ -104,7 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Super admin bypasses all authorization checks
     if (user.role === 'super_admin') return true;
     
-    const requiredPermission = `${resource}:${action}`;
+    const normAction = action === 'read' ? 'view' : action;
+    const requiredPermission = `${resource}:${normAction}`;
     return permissions.includes(requiredPermission);
   };
 
@@ -120,10 +124,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Force redirect to login if accessing protected dashboard routes
       router.push('/login');
     } else if (isAuthenticated && isAuthRoute) {
-      // If logged in, redirect away from auth pages to dashboard
-      router.push('/dashboard');
+      // If logged in, redirect away from auth pages to user tenant dashboard
+      const targetSlug = user?.tenantSlug || 'v3c-system-tenant';
+      router.push(`/${targetSlug}/dashboard`);
     }
-  }, [isAuthenticated, isLoading, pathname, router]);
+  }, [isAuthenticated, isLoading, pathname, router, user?.tenantSlug]);
 
   const value: AuthContextType = {
     user,

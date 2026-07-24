@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Users, Plus, Shield, RefreshCw, Edit2, Trash2, Mail, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Plus, Shield, RefreshCw, Edit2, Trash2, Mail, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 
 interface TeamMemberItem {
@@ -38,14 +38,25 @@ export default function TeamManagementPage() {
   const [roleId, setRoleId] = useState('');
   const [domainId, setDomainId] = useState('');
 
-  // Fetch Team
-  const { data: team = [], isLoading, refetch, isRefetching } = useQuery<TeamMemberItem[]>({
-    queryKey: ['team-members'],
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Fetch Team with Pagination
+  const { data: teamResponse, isLoading, refetch, isRefetching } = useQuery({
+    queryKey: ['team-members', page, pageSize],
     queryFn: async () => {
-      const res = await api.get<{ status: string; data: TeamMemberItem[] }>('/api/team');
-      return res.data;
+      const res = await api.get<{ 
+        status: string; 
+        data: TeamMemberItem[]; 
+        pagination?: { total: number; page: number; limit: number; totalPages: number } 
+      }>(`/api/team?page=${page}&limit=${pageSize}`);
+      return res;
     },
   });
+
+  const team = teamResponse?.data || [];
+  const pagination = teamResponse?.pagination || { total: team.length, page: 1, limit: pageSize, totalPages: 1 };
 
   // Fetch Roles
   const { data: roles = [] } = useQuery<RoleItem[]>({
@@ -228,6 +239,53 @@ export default function TeamManagementPage() {
           </div>
         ) : (
           <p className="text-xs text-slate-400 italic">No team members added yet.</p>
+        )}
+
+        {/* Pagination Toolbar */}
+        {pagination.total > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 pt-4 text-xs text-slate-500">
+            <div className="flex items-center gap-2">
+              <span>Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              <span>per page</span>
+              <span className="ml-2 text-slate-400">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} members
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={pagination.page <= 1}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <span className="px-3 py-1 font-bold text-slate-900">
+                Page {pagination.page} of {pagination.totalPages || 1}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                disabled={pagination.page >= pagination.totalPages}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

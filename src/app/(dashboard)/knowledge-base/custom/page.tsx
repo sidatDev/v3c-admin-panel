@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { FileText, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { FileText, Plus, Trash2, RefreshCw, Edit2, Eye } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 
 interface CustomKnowledgeItem {
@@ -18,6 +18,7 @@ export default function CustomKnowledgePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<CustomKnowledgeItem | null>(null);
 
   const { data: entries = [], isLoading, refetch, isRefetching } = useQuery<CustomKnowledgeItem[]>({
     queryKey: ['kb-custom'],
@@ -42,6 +43,22 @@ export default function CustomKnowledgePage() {
     onError: (error) => {
       if (error instanceof ApiError) toast.error(error.message);
       else toast.error('Failed to add snippet.');
+    },
+  });
+
+  const updateSnippetMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: { fileName: string; content: string } }) => {
+      const res = await api.put(`/api/kb/custom/${id}`, payload);
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kb-custom'] });
+      toast.success('Knowledge snippet updated!');
+      setEditingItem(null);
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) toast.error(error.message);
+      else toast.error('Failed to update snippet.');
     },
   });
 
@@ -103,20 +120,36 @@ export default function CustomKnowledgePage() {
               <div>
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h3 className="font-bold text-slate-900 text-sm truncate">{item.fileName || 'Knowledge Snippet'}</h3>
-                  <button
-                    onClick={() => deleteSnippetMutation.mutate(item.id)}
-                    className="text-slate-400 hover:text-rose-600 p-1"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEditingItem(item)}
+                      className="text-slate-400 hover:text-indigo-600 p-1"
+                      title="View / Edit Snippet"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => deleteSnippetMutation.mutate(item.id)}
+                      className="text-slate-400 hover:text-rose-600 p-1"
+                      title="Delete Snippet"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <p className="mt-3 text-xs text-slate-600 leading-relaxed whitespace-pre-wrap line-clamp-6">
                   {item.content}
                 </p>
               </div>
-              <p className="mt-4 text-[10px] text-slate-400 border-t border-slate-100 pt-2">
-                Added {new Date(item.createdAt).toLocaleDateString()}
-              </p>
+              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-2 text-[10px] text-slate-400">
+                <span>Added {new Date(item.createdAt).toLocaleDateString()}</span>
+                <button
+                  onClick={() => setEditingItem(item)}
+                  className="font-semibold text-indigo-600 hover:underline flex items-center gap-1"
+                >
+                  <Eye className="h-3 w-3" /> View Details
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -175,6 +208,65 @@ export default function CustomKnowledgePage() {
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
               >
                 Save Snippet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit / View Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900">View & Edit Knowledge Snippet</h3>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Title / Reference Name</label>
+              <input
+                type="text"
+                placeholder="Title / Reference Name"
+                value={editingItem.fileName || ''}
+                onChange={(e) => setEditingItem({ ...editingItem, fileName: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Snippet Content</label>
+              <textarea
+                rows={8}
+                placeholder="Content..."
+                value={editingItem.content || ''}
+                onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500 resize-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setEditingItem(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (editingItem.content) {
+                    updateSnippetMutation.mutate({
+                      id: editingItem.id,
+                      payload: {
+                        fileName: editingItem.fileName || 'Custom Knowledge Snippet',
+                        content: editingItem.content
+                      }
+                    });
+                  } else {
+                    toast.error('Content cannot be empty.');
+                  }
+                }}
+                disabled={updateSnippetMutation.isPending}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              >
+                Save Changes
               </button>
             </div>
           </div>

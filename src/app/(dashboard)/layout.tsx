@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/providers/auth-provider';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   MessageSquare,
@@ -43,39 +43,40 @@ interface SidebarItem {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, checkPermission, isLoading } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [kbExpanded, setKbExpanded] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   // Group menu items based on sidebar design
   const mainNavItems: SidebarItem[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Conversations', href: '/conversations', icon: MessageSquare },
-    { name: 'Agent Inbox (CRM)', href: '/agent-inbox', icon: Inbox },
-    { name: 'AI Agents & Retrieval', href: '/ai-agents', icon: Cpu },
-    { name: 'AI Logs & Telemetry', href: '/ai-logs', icon: Activity },
-    { name: 'Leads', href: '/leads', icon: UserCheck },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, resource: 'dashboard', action: 'view' },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3, resource: 'analytics', action: 'view' },
+    { name: 'Conversations', href: '/conversations', icon: MessageSquare, resource: 'conversations', action: 'view' },
+    { name: 'Agent Inbox (CRM)', href: '/agent-inbox', icon: Inbox, resource: 'agent_inbox', action: 'view' },
+    { name: 'AI Agents & Retrieval', href: '/ai-agents', icon: Cpu, resource: 'ai_agents', action: 'view' },
+    { name: 'AI Logs & Telemetry', href: '/ai-logs', icon: Activity, resource: 'ai_logs', action: 'view' },
+    { name: 'Leads', href: '/leads', icon: UserCheck, resource: 'leads', action: 'view' },
     { 
       name: 'Manage Widget', 
       href: '/manage-widget', 
       icon: Settings,
       resource: 'widget',
-      action: 'read'
+      action: 'view'
     },
     { 
       name: 'Integrations', 
       href: '/integrations', 
       icon: Grid,
       resource: 'integrations',
-      action: 'read'
+      action: 'view'
     },
     {
       name: 'Knowledge Base',
       href: '/knowledge-base',
       icon: BookOpen,
       resource: 'knowledge_base',
-      action: 'read',
+      action: 'view',
       subItems: [
         { name: 'Overview', href: '/knowledge-base' },
         { name: 'Sitemap', href: '/knowledge-base/sitemap' },
@@ -98,14 +99,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       href: '/team-management', 
       icon: Users,
       resource: 'team',
-      action: 'read'
+      action: 'view'
     },
     { 
       name: 'Roles & Permissions', 
       href: '/roles-permissions', 
       icon: ShieldCheck,
       resource: 'roles',
-      action: 'read'
+      action: 'view'
     },
   ];
 
@@ -115,9 +116,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       href: '/domain-settings', 
       icon: Globe,
       resource: 'domain',
-      action: 'read'
+      action: 'view'
     },
-    { name: 'Billing', href: '/billing', icon: CreditCard },
+    { name: 'Billing', href: '/billing', icon: CreditCard, resource: 'billing', action: 'view' },
   ];
 
   // Helper to filter sidebar items by permission
@@ -130,6 +131,60 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const filteredMainItems = filterItems(mainNavItems);
   const filteredDomainItems = filterItems(domainNavItems);
+  const tenantSlug = user?.tenantSlug || 'v3c-system-tenant';
+
+  // Helper to build tenant slug URLs
+  const getTenantHref = (rawPath: string) => {
+    if (rawPath === '#') return '#';
+    const cleanPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+    return `/${tenantSlug}${cleanPath}`;
+  };
+
+  // Helper to check if a route is active
+  const isRouteActive = (rawPath: string, subItems?: { name: string; href: string }[]) => {
+    const cleanPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+    const tenantScoped = `/${tenantSlug}${cleanPath}`;
+
+    if (pathname === rawPath || pathname === tenantScoped) return true;
+    if (pathname.startsWith(tenantScoped + '/') || (cleanPath !== '/' && pathname.startsWith(cleanPath + '/'))) return true;
+
+    if (subItems) {
+      return subItems.some(sub => {
+        const subClean = sub.href.startsWith('/') ? sub.href : `/${sub.href}`;
+        const subScoped = `/${tenantSlug}${subClean}`;
+        return pathname === sub.href || pathname === subScoped;
+      });
+    }
+    return false;
+  };
+
+  // Redirect bare routes or mismatched URL slugs to user's assigned tenant slug
+  React.useEffect(() => {
+    if (isLoading || !user) return;
+    const currentSlug = user.tenantSlug || 'v3c-system-tenant';
+    const isSuperAdmin = user.role === 'super_admin';
+
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length === 0) return;
+
+    const firstSegment = segments[0];
+    
+    const RESERVED_PATHS = [
+      'dashboard', 'analytics', 'conversations', 'agent-inbox', 'ai-agents', 'ai-logs',
+      'leads', 'manage-widget', 'integrations', 'knowledge-base', 'ai-search',
+      'team-management', 'roles-permissions', 'domain-settings', 'billing', 'account', 'notifications'
+    ];
+
+    if (RESERVED_PATHS.includes(firstSegment)) {
+      // Redirect to include tenant slug in URL
+      const cleanPath = pathname.replace(/^\//, '');
+      router.replace(`/${currentSlug}/${cleanPath}`);
+    } else if (firstSegment !== currentSlug && !isSuperAdmin) {
+      // If non-super admin visits another tenant's URL slug, enforce their own slug
+      const pathSuffix = segments.slice(1).join('/');
+      router.replace(`/${currentSlug}/${pathSuffix || 'dashboard'}`);
+    }
+  }, [isLoading, user, pathname, router]);
 
   if (isLoading) {
     return (
@@ -146,9 +201,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Get active menu/page label for breadcrumbs
   const getBreadcrumbs = () => {
-    const segments = pathname.split('/').filter(Boolean);
+    const rawSegments = pathname.split('/').filter(Boolean);
+    // Filter out tenant slug from breadcrumbs if present
+    const segments = rawSegments[0] === tenantSlug ? rawSegments.slice(1) : rawSegments;
     return segments.map((seg, i) => {
-      const href = '/' + segments.slice(0, i + 1).join('/');
+      const href = `/${tenantSlug}/` + segments.slice(0, i + 1).join('/');
       const label = seg.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       return { label, href, isLast: i === segments.length - 1 };
     });
@@ -174,7 +231,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* LOGO AREA */}
         <div className="flex h-16 items-center justify-between px-6 border-b border-slate-800">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href={getTenantHref('/dashboard')} className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white shadow-md shadow-indigo-600/30">
               V3
             </div>
@@ -203,7 +260,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Main Operations
             </p>
             {filteredMainItems.map((item) => {
-              const isActive = pathname === item.href || (item.subItems && pathname.startsWith(item.href));
+              const isActive = isRouteActive(item.href, item.subItems);
               
               if (item.subItems) {
                 return (
@@ -227,11 +284,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {kbExpanded && (
                       <div className="pl-9 space-y-1 border-l border-slate-800 ml-5 mt-1">
                         {item.subItems.map((sub) => {
-                          const subActive = pathname === sub.href;
+                          const subActive = isRouteActive(sub.href);
                           return (
                             <Link
                               key={sub.name}
-                              href={sub.href}
+                              href={getTenantHref(sub.href)}
                               onClick={() => setMobileMenuOpen(false)}
                               className={`block rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                                 subActive 
@@ -252,7 +309,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               return (
                 <Link
                   key={item.name}
-                  href={item.isComingSoon ? '#' : item.href}
+                  href={item.isComingSoon ? '#' : getTenantHref(item.href)}
                   onClick={() => !item.isComingSoon && setMobileMenuOpen(false)}
                   className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive 
@@ -280,11 +337,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Branding & Keys
             </p>
             {filteredDomainItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
+              const isActive = isRouteActive(item.href);
               return (
                 <Link
                   key={item.name}
-                  href={item.isComingSoon ? '#' : item.href}
+                  href={item.isComingSoon ? '#' : getTenantHref(item.href)}
                   onClick={() => !item.isComingSoon && setMobileMenuOpen(false)}
                   className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive 

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { UserCheck, Plus, CheckCircle, RefreshCw, History, Shield } from 'lucide-react';
+import { UserCheck, Plus, CheckCircle, RefreshCw, History, Shield, Edit2 } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 
 interface PersonaVersionItem {
@@ -31,6 +31,7 @@ export default function PersonaPage() {
   const [tone, setTone] = useState('professional');
   const [language, setLanguage] = useState('English');
   const [instructions, setInstructions] = useState('');
+  const [editingVersion, setEditingVersion] = useState<PersonaVersionItem | null>(null);
 
   const { data: personaData, isLoading, refetch, isRefetching } = useQuery<PersonaData>({
     queryKey: ['kb-persona'],
@@ -55,6 +56,21 @@ export default function PersonaPage() {
     onError: (error) => {
       if (error instanceof ApiError) toast.error(error.message);
       else toast.error('Failed to create persona version.');
+    },
+  });
+
+  const updateVersionMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+      await api.put(`/api/kb/persona/versions/${id}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kb-persona'] });
+      toast.success('Persona version updated!');
+      setEditingVersion(null);
+    },
+    onError: (error) => {
+      if (error instanceof ApiError) toast.error(error.message);
+      else toast.error('Failed to update persona version.');
     },
   });
 
@@ -170,7 +186,14 @@ export default function PersonaPage() {
                         </span>
                       )}
                     </td>
-                    <td className="p-3.5 text-right">
+                    <td className="p-3.5 text-right flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setEditingVersion(ver)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-indigo-600 p-1"
+                        title="View / Edit Persona Version"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" /> Edit
+                      </button>
                       {!isActive && (
                         <button
                           onClick={() => activateVersionMutation.mutate(ver.id)}
@@ -256,6 +279,96 @@ export default function PersonaPage() {
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
               >
                 Create Version
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Version Modal */}
+      {editingVersion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-slate-900">View & Edit Persona Version</h3>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Version Name</label>
+              <input
+                type="text"
+                placeholder="Persona Version Name"
+                value={editingVersion.name || ''}
+                onChange={(e) => setEditingVersion({ ...editingVersion, name: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Tone</label>
+                <select
+                  value={editingVersion.tone || 'professional'}
+                  onChange={(e) => setEditingVersion({ ...editingVersion, tone: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 outline-none focus:border-indigo-500 capitalize"
+                >
+                  <option value="professional">Professional</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="empathetic">Empathetic</option>
+                  <option value="concise">Concise</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Language</label>
+                <select
+                  value={editingVersion.language || 'English'}
+                  onChange={(e) => setEditingVersion({ ...editingVersion, language: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900 outline-none focus:border-indigo-500"
+                >
+                  <option value="English">English</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="French">French</option>
+                  <option value="German">German</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Behavior Guidelines & Instructions</label>
+              <textarea
+                rows={5}
+                placeholder="Detailed tone instructions..."
+                value={editingVersion.instructions || ''}
+                onChange={(e) => setEditingVersion({ ...editingVersion, instructions: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 p-3 text-xs text-slate-900 outline-none focus:border-indigo-500 resize-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setEditingVersion(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (editingVersion.name && editingVersion.instructions) {
+                    updateVersionMutation.mutate({
+                      id: editingVersion.id,
+                      payload: {
+                        name: editingVersion.name,
+                        tone: editingVersion.tone,
+                        language: editingVersion.language,
+                        instructions: editingVersion.instructions
+                      }
+                    });
+                  } else {
+                    toast.error('Please enter name and instructions.');
+                  }
+                }}
+                disabled={updateVersionMutation.isPending}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+              >
+                Save Changes
               </button>
             </div>
           </div>

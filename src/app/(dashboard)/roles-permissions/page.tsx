@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { ShieldCheck, Plus, RefreshCw, UserCheck, ShieldAlert, BookOpen, Key, Info } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
+import { useAuth } from '@/providers/auth-provider';
 import { 
   createRoleSchema, 
   assignRoleSchema, 
@@ -38,6 +39,8 @@ interface User {
 }
 
 export default function RolesPermissionsPage() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
   const queryClient = useQueryClient();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -192,7 +195,7 @@ export default function RolesPermissionsPage() {
 
   // Toggle permission check in currently editing list
   const handlePermissionToggle = (permKey: string) => {
-    if (!selectedRole || selectedRole.isSystem) return;
+    if (!selectedRole || (selectedRole.isSystem && !isSuperAdmin)) return;
     
     let updatedPerms = [...selectedRole.permissions];
     if (updatedPerms.includes(permKey)) {
@@ -301,14 +304,14 @@ export default function RolesPermissionsPage() {
                   {selectedRole ? `Permissions for ${selectedRole.name}` : 'Permission Controls'}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {selectedRole?.isSystem 
+                  {selectedRole?.isSystem && !isSuperAdmin
                     ? 'Built-in system roles have read-only immutable permissions.' 
                     : selectedRole 
-                    ? 'Click checkboxes to add/remove permissions from this custom role.'
+                    ? 'Click checkboxes to add/remove permissions from this role.'
                     : 'Select a role from the left panel to configure permissions.'}
                 </p>
               </div>
-              {selectedRole?.isSystem && (
+              {selectedRole?.isSystem && !isSuperAdmin && (
                 <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
                   <ShieldAlert className="h-3.5 w-3.5" />
                   Read Only
@@ -324,49 +327,72 @@ export default function RolesPermissionsPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {Object.entries(groupedPermissions).map(([resource, perms]) => (
-                    <div key={resource} className="border-b border-slate-100 pb-5 last:border-0 last:pb-0">
-                      <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wider mb-3">
-                        {resource.replace('_', ' ')}
-                      </h4>
-                      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                        {perms.map((perm) => {
-                          const permKey = `${perm.resource}:${perm.action}`;
-                          const isChecked = selectedRole.permissions.includes(permKey);
-                          const isDisabled = selectedRole.isSystem || updatePermissionsMutation.isPending;
-                          
-                          return (
-                            <label
-                              key={perm.id}
-                              className={`flex items-start gap-3 p-3 rounded-lg border text-left cursor-pointer transition-all ${
-                                isChecked
-                                  ? 'border-indigo-100 bg-indigo-50/10'
-                                  : 'border-slate-100 hover:bg-slate-50'
-                              } ${isDisabled ? 'cursor-not-allowed opacity-75' : ''}`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                disabled={isDisabled}
-                                onChange={() => handlePermissionToggle(permKey)}
-                                className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                              />
-                              <div>
-                                <span className="text-xs font-semibold text-slate-900 capitalize">
-                                  {perm.action}
-                                </span>
-                                {perm.description && (
-                                  <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
-                                    {perm.description}
-                                  </p>
-                                )}
-                              </div>
-                            </label>
-                          );
-                        })}
+                  {Object.entries(groupedPermissions).map(([resource, perms]) => {
+                    const resourceLabels: Record<string, string> = {
+                      dashboard: 'Dashboard',
+                      analytics: 'Analytics & Performance Metrics',
+                      conversations: 'Conversations',
+                      agent_inbox: 'Agent Inbox (CRM)',
+                      ai_agents: 'AI Agents & Retrieval',
+                      ai_logs: 'AI Logs & Telemetry',
+                      leads: 'Leads',
+                      widget: 'Manage Widget',
+                      integrations: 'Integrations',
+                      knowledge_base: 'Knowledge Base',
+                      ai_search: 'AI Search',
+                      team: 'Team Management',
+                      roles: 'Roles & Permissions',
+                      domain: 'Domain Settings',
+                      billing: 'Billing',
+                      notifications: 'Notifications',
+                      account: 'Account & Profile'
+                    };
+                    const displayTitle = resourceLabels[resource] || resource.replace(/_/g, ' ').toUpperCase();
+
+                    return (
+                      <div key={resource} className="border-b border-slate-100 pb-5 last:border-0 last:pb-0">
+                        <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <span>{displayTitle}</span>
+                        </h4>
+                        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                          {perms.map((perm) => {
+                            const permKey = `${perm.resource}:${perm.action}`;
+                            const isChecked = selectedRole.permissions.includes(permKey);
+                            const isDisabled = (selectedRole.isSystem && !isSuperAdmin) || updatePermissionsMutation.isPending;
+                            
+                            return (
+                              <label
+                                key={perm.id}
+                                className={`flex items-start gap-3 p-3 rounded-lg border text-left cursor-pointer transition-all ${
+                                  isChecked
+                                    ? 'border-indigo-100 bg-indigo-50/10'
+                                    : 'border-slate-100 hover:bg-slate-50'
+                                } ${isDisabled ? 'cursor-not-allowed opacity-75' : ''}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  disabled={isDisabled}
+                                  onChange={() => handlePermissionToggle(permKey)}
+                                  className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <div>
+                                  <span className="text-xs font-semibold text-slate-900 capitalize">
+                                    {perm.action}
+                                  </span>
+                                  {perm.description && (
+                                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
+                                      {perm.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
