@@ -82,8 +82,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Sitemap', href: '/knowledge-base/sitemap' },
         { name: 'Custom Knowledge', href: '/knowledge-base/custom' },
         { name: 'Documents', href: '/knowledge-base/documents' },
-        { name: 'System Prompt', href: '/knowledge-base/system-prompt' },
-        { name: 'Business Persona', href: '/knowledge-base/persona' },
         { name: 'Search Tester', href: '/knowledge-base/search-tester' },
       ]
     },

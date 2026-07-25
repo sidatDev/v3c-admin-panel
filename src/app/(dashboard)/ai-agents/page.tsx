@@ -578,35 +578,22 @@ export default function AiAgentsPage() {
                     className="w-full accent-indigo-600"
                   />
                   <p className="mt-1.5 text-xs text-slate-500">
-                    Queries with vector similarity below this threshold will trigger the Topic Suggestion Fallback protocol instead of invoking GPT.
+                    Queries with vector similarity below this threshold will trigger dynamic fallback guidance. The AI agent will rely on System Role & Behavioral Instructions to answer multi-turn follow-ups or decline out-of-scope queries.
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Out-of-Scope Fallback Message (English)</label>
-                  <textarea
-                    rows={2}
-                    value={selectedAgent.RetrievalConfig.fallbackMessage || ''}
-                    onChange={(e) => setSelectedAgent({
-                      ...selectedAgent,
-                      RetrievalConfig: { ...selectedAgent.RetrievalConfig!, fallbackMessage: e.target.value }
-                    })}
-                    className="w-full rounded-xl bg-white border border-slate-300 p-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Out-of-Scope Fallback Message (Urdu)</label>
-                  <textarea
-                    rows={2}
-                    dir="rtl"
-                    value={selectedAgent.RetrievalConfig.fallbackMessageUrdu || ''}
-                    onChange={(e) => setSelectedAgent({
-                      ...selectedAgent,
-                      RetrievalConfig: { ...selectedAgent.RetrievalConfig!, fallbackMessageUrdu: e.target.value }
-                    })}
-                    className="w-full rounded-xl bg-white border border-slate-300 p-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none font-sans"
-                  />
+                <div className="rounded-xl bg-indigo-50/70 border border-indigo-100 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-lg bg-indigo-100 p-2 text-indigo-700 mt-0.5">
+                      <Sliders className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">System Instruction Managed Fallback Protocol</h5>
+                      <p className="mt-1 text-xs text-indigo-800/90 leading-relaxed">
+                        Out-of-scope queries and multi-turn follow-ups are dynamically governed by your <strong>System Instructions</strong> tab. Hardcoded static refusal messages have been removed to ensure natural, seamless multi-turn conversations.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

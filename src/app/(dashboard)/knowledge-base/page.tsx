@@ -36,20 +36,6 @@ const KB_SECTIONS = [
     color: 'text-emerald-600 bg-emerald-50 border-emerald-100',
   },
   {
-    title: 'System Prompt',
-    description: 'Configure primary system instructions and baseline behavior for AI agents.',
-    href: '/knowledge-base/system-prompt',
-    icon: Terminal,
-    color: 'text-amber-600 bg-amber-50 border-amber-100',
-  },
-  {
-    title: 'Business Persona',
-    description: 'Manage brand voice tones, languages, and versioned persona profiles.',
-    href: '/knowledge-base/persona',
-    icon: UserCheck,
-    color: 'text-purple-600 bg-purple-50 border-purple-100',
-  },
-  {
     title: 'Search Tester',
     description: 'Test search queries against indexed knowledge base items and inspect snippet scores.',
     href: '/knowledge-base/search-tester',
