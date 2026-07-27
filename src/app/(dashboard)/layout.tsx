@@ -228,15 +228,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }`}
       >
         {/* LOGO AREA */}
-        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-800">
-          <Link href={getTenantHref('/dashboard')} className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 font-bold text-white shadow-md shadow-indigo-600/30">
-              V3
-            </div>
+        <div className="flex h-20 items-center justify-between px-4 border-b border-slate-800/80 bg-slate-950/40">
+          <Link href={getTenantHref('/dashboard')} className="flex items-center gap-3 py-1">
+            <img src="/v3c-logo.png" alt="V3C Logo" className="h-10 w-auto object-contain transition-transform hover:scale-105" />
             <div>
-              <span className="font-bold text-white tracking-tight">V3C Platform</span>
+              <span className="font-bold text-white tracking-tight text-base block leading-tight">V3C Platform</span>
               {user?.companyName && (
-                <p className="text-[10px] text-slate-400 font-semibold tracking-wide truncate max-w-[150px]">
+                <p className="text-[10px] text-slate-400 font-semibold tracking-wide truncate max-w-[130px]">
                   {user.companyName.toUpperCase()}
                 </p>
               )}

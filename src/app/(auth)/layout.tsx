@@ -13,14 +13,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       <div className="relative z-10 w-full max-w-md page-enter">
         <div className="mb-8 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 font-bold text-white shadow-lg shadow-indigo-600/30">
-            V3C
+          <div className="inline-flex items-center justify-center px-4 py-3 rounded-2xl bg-slate-900/90 border border-slate-800/80 shadow-2xl backdrop-blur-md">
+            <img src="/v3c-logo.png" alt="V3C - The New Era of Customer Care" className="h-16 max-w-[280px] w-auto object-contain" />
           </div>
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-white">
+          <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-white">
             V3C Platform
           </h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Intelligent AI Agent & Conversational Analytics
+          <p className="mt-1.5 text-sm text-slate-400">
+            Intelligent AI Agent &amp; Conversational Analytics
           </p>
         </div>
 
