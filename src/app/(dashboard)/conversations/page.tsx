@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ColumnDef, PaginationState } from '@tanstack/react-table';
-import { MessageSquare, Eye, Calendar, User, ArrowRight, RefreshCw } from 'lucide-react';
+import { MessageSquare, Eye, Calendar, User, ArrowRight, RefreshCw, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { DataTable } from '@/components/ui/data-table';
 
@@ -44,11 +45,13 @@ interface PaginatedConversations {
 }
 
 export default function ConversationsPage() {
+  const queryClient = useQueryClient();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
   const [search, setSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const {
     data: conversationsResponse,
@@ -64,6 +67,29 @@ export default function ConversationsPage() {
       return res;
     },
   });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/api/conversations/${id}`);
+    },
+    onSuccess: () => {
+      toast.success('Conversation deleted successfully!');
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setDeletingId(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to delete conversation');
+      setDeletingId(null);
+    },
+  });
+
+  const handleDelete = (id: number) => {
+    if (window.confirm(`Are you sure you want to delete conversation #${id}?`)) {
+      setDeletingId(id);
+      deleteMutation.mutate(id);
+    }
+  };
 
   const columns: ColumnDef<ConversationItem, any>[] = [
     {
@@ -127,13 +153,27 @@ export default function ConversationsPage() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <Link
-          href={`/conversations/${row.original.id}`}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          View Transcript
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/conversations/${row.original.id}`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-500 hover:underline"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            View
+          </Link>
+          <button
+            onClick={() => handleDelete(row.original.id)}
+            disabled={deletingId === row.original.id}
+            title="Delete Conversation"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-500 disabled:opacity-50"
+          >
+            {deletingId === row.original.id ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
       ),
     },
   ];

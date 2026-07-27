@@ -27,6 +27,20 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-xl">
           {children}
         </div>
+
+        {/* Footer Attribution */}
+        <footer className="mt-8 text-center text-xs text-slate-400">
+          <a
+            href="https://www.sidat.net/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Visit Sidat Technologies & Digital"
+            className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            <img src="/sidat.png" alt="Sidat Logo" className="h-4.5 w-auto object-contain opacity-80 hover:opacity-100" />
+            <span>Designed &amp; Developed by Sidat Technologies &amp; Digital</span>
+          </a>
+        </footer>
       </div>
     </div>
   );

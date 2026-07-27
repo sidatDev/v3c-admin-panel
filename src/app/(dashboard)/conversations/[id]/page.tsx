@@ -44,6 +44,7 @@ interface ConversationDetailResponse {
       landingPage: string | null;
       startedAt: string;
       status: string;
+      ipAddress?: string | null;
     } | null;
   };
   transcript: TranscriptItem[];
@@ -230,6 +231,13 @@ export default function ConversationDetailPage() {
                 <span className="text-slate-400 font-medium">Assigned AI Agent</span>
                 <p className="font-semibold text-slate-800 mt-0.5">
                   {conversation.Agent?.name || 'V3C AI Assistant'}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-slate-400 font-medium">IP Address</span>
+                <p className="font-mono text-slate-800 font-semibold mt-0.5">
+                  {session?.ipAddress || '127.0.0.1'}
                 </p>
               </div>
 

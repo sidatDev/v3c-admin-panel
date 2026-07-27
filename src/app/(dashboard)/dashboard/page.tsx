@@ -3,6 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useAuth } from '@/providers/auth-provider';
 import { toast } from 'sonner';
 import { 
   Users, 
@@ -45,6 +46,7 @@ interface DailyVisitors {
 }
 
 export default function DashboardPage() {
+  const { isAuthenticated, user } = useAuth();
   
   // 1. Fetch dashboard metrics
   const { 
@@ -57,7 +59,8 @@ export default function DashboardPage() {
     queryFn: async () => {
       const res = await api.get<{ status: string; data: DashboardStats }>('/api/dashboard/stats');
       return res.data;
-    }
+    },
+    enabled: isAuthenticated && !!user,
   });
 
   // 2. Fetch daily visitors chart timeseries
@@ -71,7 +74,8 @@ export default function DashboardPage() {
     queryFn: async () => {
       const res = await api.get<{ status: string; data: DailyVisitors[] }>('/api/dashboard/visitors');
       return res.data;
-    }
+    },
+    enabled: isAuthenticated && !!user,
   });
 
   const handleRefreshAll = () => {

@@ -92,9 +92,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await api.post('/api/auth/logout');
+      try {
+        await api.post('/api/auth/logout');
+      } catch (e) {
+        // Ignore 401 or network errors on logout
+      }
     },
     onSuccess: () => {
+      queryClient.cancelQueries();
+      queryClient.setQueryData(['auth-user'], null);
+      queryClient.clear();
+      router.push('/login');
+    },
+    onError: () => {
+      queryClient.cancelQueries();
       queryClient.setQueryData(['auth-user'], null);
       queryClient.clear();
       router.push('/login');
