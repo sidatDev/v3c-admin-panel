@@ -237,7 +237,7 @@ export default function ConversationDetailPage() {
               <div>
                 <span className="text-slate-400 font-medium">IP Address</span>
                 <p className="font-mono text-slate-800 font-semibold mt-0.5">
-                  {session?.ipAddress || '127.0.0.1'}
+                  {session?.ipAddress || 'Not Recorded'}
                 </p>
               </div>
 
