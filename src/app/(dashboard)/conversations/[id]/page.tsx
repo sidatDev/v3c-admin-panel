@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MessageSquare, User, Bot, Globe, Calendar, RefreshCw, Mail, Phone } from 'lucide-react';
+import { ArrowLeft, MessageSquare, User, Bot, Globe, Calendar, RefreshCw, Mail, Phone, Mic } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -41,6 +41,7 @@ interface ConversationDetailResponse {
     } | null;
     VisitorSession?: {
       id: number;
+      channel?: string | null;
       referrer: string | null;
       landingPage: string | null;
       startedAt: string;
@@ -230,9 +231,26 @@ export default function ConversationDetailPage() {
 
             <div className="space-y-3 text-xs text-slate-600">
               <div>
+                <span className="text-slate-400 font-medium">Interaction Channel</span>
+                <div className="mt-1">
+                  {session?.channel === 'voice' ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                      <Mic className="h-3 w-3 text-emerald-600" />
+                      Realtime Voice
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200">
+                      <MessageSquare className="h-3 w-3 text-indigo-600" />
+                      Text Chat
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
                 <span className="text-slate-400 font-medium">Assigned AI Agent</span>
                 <p className="font-semibold text-slate-800 mt-0.5">
-                  {conversation.Agent?.name || 'V3C AI Assistant'}
+                  {conversation.Agent?.name || 'EFU General'}
                 </p>
               </div>
 
@@ -246,21 +264,23 @@ export default function ConversationDetailPage() {
               {session?.referrer && (
                 <div>
                   <span className="text-slate-400 font-medium">Referrer</span>
-                  <p className="truncate text-slate-700 mt-0.5">{session.referrer}</p>
-                </div>
-              )}
-
-              {session?.landingPage && (
-                <div>
-                  <span className="text-slate-400 font-medium">Landing Page</span>
-                  <p className="truncate text-slate-700 mt-0.5">{session.landingPage}</p>
+                  <p className="truncate text-slate-700 mt-0.5" title={session.referrer}>{session.referrer}</p>
                 </div>
               )}
 
               <div>
+                <span className="text-slate-400 font-medium">Landing Page</span>
+                <p className="truncate text-slate-700 mt-0.5" title={session?.landingPage || ''}>
+                  {session?.landingPage || 'N/A'}
+                </p>
+              </div>
+
+              <div>
                 <span className="text-slate-400 font-medium">Session Started</span>
-                <p className="text-slate-700 mt-0.5">
-                  {session?.startedAt ? new Date(session.startedAt).toLocaleString() : 'N/A'}
+                <p className="text-slate-700 font-semibold mt-0.5">
+                  {session?.startedAt
+                    ? new Date(session.startedAt).toLocaleString()
+                    : new Date(conversation.createdAt).toLocaleString()}
                 </p>
               </div>
             </div>
