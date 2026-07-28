@@ -34,7 +34,7 @@ export default function DocumentsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kb-documents'] });
-      toast.success('Document deleted from SeaweedFS S3.');
+      toast.success('Document deleted from Storage.');
     },
   });
 
@@ -51,11 +51,11 @@ export default function DocumentsPage() {
 
       await api.post('/api/kb/documents/upload', formData);
 
-      toast.success(`'${selectedFile.name}' uploaded successfully to SeaweedFS S3!`);
+      toast.success(`'${selectedFile.name}' uploaded successfully to storage!`);
       setSelectedFile(null);
       queryClient.invalidateQueries({ queryKey: ['kb-documents'] });
     } catch (error) {
-      toast.error('Failed to upload document to SeaweedFS S3.');
+      toast.error('Failed to upload document to storage.');
     } finally {
       setIsUploading(false);
     }
@@ -83,10 +83,10 @@ export default function DocumentsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <UploadCloud className="h-6 w-6 text-indigo-600" />
-            Documents (SeaweedFS S3)
+            Documents
           </h1>
           <p className="text-sm text-slate-500">
-            Upload PDF, DOCX, and TXT documents directly to SeaweedFS S3 storage bucket.
+            Upload PDF, DOCX, and TXT documents directly to storage bucket.
           </p>
         </div>
         <button
@@ -106,7 +106,7 @@ export default function DocumentsPage() {
             <HardDrive className="h-7 w-7" />
           </div>
 
-          <h3 className="text-base font-bold text-slate-900">Upload to SeaweedFS Storage</h3>
+          <h3 className="text-base font-bold text-slate-900">Upload to Storage</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm">
             Drag & drop files here, or click to browse (PDF, DOCX, TXT up to 50MB).
           </p>
@@ -210,7 +210,7 @@ export default function DocumentsPage() {
             </table>
           </div>
         ) : (
-          <p className="text-xs text-slate-400 italic">No documents uploaded to SeaweedFS S3 yet.</p>
+          <p className="text-xs text-slate-400 italic">No documents uploaded to storages yet.</p>
         )}
       </div>
     </div>

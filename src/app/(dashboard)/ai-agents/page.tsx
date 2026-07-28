@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import { toast } from 'sonner';
+import { showConfirmToast } from '@/components/ui/confirm-toast';
 import {
   Cpu,
   Mic,
@@ -199,25 +200,43 @@ export default function AiAgentsPage() {
         setSelectedAgent(res.data);
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to create agent');
+      toast.error(err.message || 'Failed to create agent');
     }
   }
 
-  async function handleDeleteAgent(agentId: string) {
+  function promptCreateAgent() {
+    showConfirmToast({
+      title: 'Add New AI Agent',
+      description: 'Are you sure you want to create a new AI Agent for this tenant?',
+      confirmText: 'Create Agent',
+      cancelText: 'Cancel',
+      onConfirm: handleCreateAgent,
+    });
+  }
+
+  function handleDeleteAgent(agentId: string) {
     if (agents.length <= 1) {
-      alert("You must keep at least one AI Agent.");
+      toast.error('You must keep at least one AI Agent.');
       return;
     }
-    const confirmDelete = window.confirm("Are you sure you want to delete this agent?");
-    if (!confirmDelete) return;
 
-    try {
-      await api.delete(`/api/agents/${agentId}`);
-      toast.success('Agent deleted successfully!');
-      await loadAgents();
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete agent');
-    }
+    const targetAgent = agents.find((a) => a.id === agentId);
+    showConfirmToast({
+      title: 'Delete AI Agent',
+      description: `Are you sure you want to delete "${targetAgent?.name || 'this agent'}"? This action cannot be undone.`,
+      confirmText: 'Delete Agent',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/agents/${agentId}`);
+          toast.success('Agent deleted successfully!');
+          await loadAgents();
+        } catch (err: any) {
+          toast.error(err.message || 'Failed to delete agent');
+        }
+      },
+    });
   }
 
   if (loading) {
@@ -235,7 +254,7 @@ export default function AiAgentsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <Cpu className="h-7 w-7 text-indigo-600" />
-            AI Agents & Retrieval Settings
+            AI Agents &amp; Retrieval Settings
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             Configure AI voice parameters, confidence-based vector search thresholds, system prompts, and out-of-scope topic links.
@@ -277,7 +296,7 @@ export default function AiAgentsPage() {
             <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Tenant AI Agents</h3>
               <button
-                onClick={handleCreateAgent}
+                onClick={promptCreateAgent}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-500 cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Agent

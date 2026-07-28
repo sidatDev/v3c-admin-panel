@@ -58,7 +58,7 @@ export default function AccountSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['account-profile'] });
       refreshUser();
-      toast.success('Profile updated & avatar uploaded to SeaweedFS!');
+      toast.success('Profile updated & avatar uploaded to Storage!');
       setAvatarFile(null);
     },
     onError: (error) => {
@@ -101,7 +101,7 @@ export default function AccountSettingsPage() {
             Account Settings
           </h1>
           <p className="text-sm text-slate-500">
-            Manage your personal profile, SeaweedFS avatar, and security credentials.
+            Manage your personal profile, avatar, and security credentials.
           </p>
         </div>
         <button
@@ -134,7 +134,7 @@ export default function AccountSettingsPage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Avatar Image (SeaweedFS S3)</label>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Avatar Image </label>
                 <input
                   type="file"
                   accept="image/*"

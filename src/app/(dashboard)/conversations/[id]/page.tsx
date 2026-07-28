@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MessageSquare, User, Bot, Globe, Calendar, RefreshCw, Mail, Phone } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useAuth } from '@/providers/auth-provider';
 
 interface TranscriptItem {
   id: number;
@@ -51,6 +52,7 @@ interface ConversationDetailResponse {
 }
 
 export default function ConversationDetailPage() {
+  const { isAuthenticated, isLoading: isLoadingAuth } = useAuth();
   const params = useParams();
   const router = useRouter();
   const conversationId = params?.id;
@@ -63,7 +65,7 @@ export default function ConversationDetailPage() {
       );
       return res.data;
     },
-    enabled: !!conversationId,
+    enabled: !!conversationId && !isLoadingAuth && isAuthenticated,
   });
 
   if (isLoading) {

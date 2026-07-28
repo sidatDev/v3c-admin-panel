@@ -42,7 +42,7 @@ export default function SearchTesterPage() {
           Search Tester
         </h1>
         <p className="text-sm text-slate-500">
-          Test query retrieval against indexed sitemap pages, custom text, and SeaweedFS documents.
+          Test query retrieval against indexed sitemap pages, custom text, and documents.
         </p>
       </div>
 

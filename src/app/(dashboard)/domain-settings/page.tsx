@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Globe, Key, Copy, Eye, EyeOff, RefreshCw, UploadCloud, Plus, CheckCircle, Trash2, ShieldCheck } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
+import { useAuth } from '@/providers/auth-provider';
 
 interface WebsiteItem {
   id: number;
@@ -26,6 +27,7 @@ interface DomainData {
 }
 
 export default function DomainSettingsPage() {
+  const { isAuthenticated, isLoading: isLoadingAuth } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'websites' | 'branding'>('websites');
 
@@ -50,6 +52,7 @@ export default function DomainSettingsPage() {
       const res = await api.get<{ status: string; data: DomainData }>('/api/domain');
       return res.data;
     },
+    enabled: !isLoadingAuth && isAuthenticated,
   });
 
   const updateBrandingMutation = useMutation({
@@ -65,7 +68,7 @@ export default function DomainSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['domain-settings'] });
-      toast.success('Branding & SeaweedFS assets saved!');
+      toast.success('Branding & assets saved!');
       setLogoFile(null);
       setFaviconFile(null);
     },
@@ -184,7 +187,7 @@ export default function DomainSettingsPage() {
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          White-Label Branding (SeaweedFS S3)
+          White-Label Branding 
         </button>
       </div>
 
@@ -329,7 +332,7 @@ export default function DomainSettingsPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand Logo (SeaweedFS S3 Upload)</label>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand Logo</label>
               <input
                 type="file"
                 accept="image/*"
@@ -339,7 +342,7 @@ export default function DomainSettingsPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand Favicon (SeaweedFS S3 Upload)</label>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand Favicon </label>
               <input
                 type="file"
                 accept="image/*"

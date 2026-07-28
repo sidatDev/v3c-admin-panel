@@ -30,17 +30,10 @@ const KB_SECTIONS = [
   },
   {
     title: 'Documents',
-    description: 'Upload PDF, DOCX, and TXT documentation directly to SeaweedFS S3 storage.',
+    description: 'Upload PDF, DOCX, and TXT documentation directly to storage.',
     href: '/knowledge-base/documents',
     icon: UploadCloud,
     color: 'text-emerald-600 bg-emerald-50 border-emerald-100',
-  },
-  {
-    title: 'Search Tester',
-    description: 'Test search queries against indexed knowledge base items and inspect snippet scores.',
-    href: '/knowledge-base/search-tester',
-    icon: Search,
-    color: 'text-rose-600 bg-rose-50 border-rose-100',
   },
 ];
 

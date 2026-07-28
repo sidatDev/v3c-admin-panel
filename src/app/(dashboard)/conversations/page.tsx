@@ -4,10 +4,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ColumnDef, PaginationState } from '@tanstack/react-table';
-import { MessageSquare, Eye, Calendar, User, ArrowRight, RefreshCw, Trash2 } from 'lucide-react';
+import { MessageSquare, Eye, Calendar, User, ArrowRight, RefreshCw, Trash2, Download, Mic, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { DataTable } from '@/components/ui/data-table';
+import { useAuth } from '@/providers/auth-provider';
 
 interface ConversationItem {
   id: number;
@@ -27,6 +28,7 @@ interface ConversationItem {
   } | null;
   VisitorSession?: {
     id: number;
+    channel?: string | null;
     referrer: string | null;
     landingPage: string | null;
     startedAt: string;
@@ -45,6 +47,7 @@ interface PaginatedConversations {
 }
 
 export default function ConversationsPage() {
+  const { isAuthenticated, isLoading: isLoadingAuth } = useAuth();
   const queryClient = useQueryClient();
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -53,20 +56,76 @@ export default function ConversationsPage() {
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
+  const [period, setPeriod] = useState<string>('3d');
+  const [channelFilter, setChannelFilter] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [exporting, setExporting] = useState(false);
+
   const {
     data: conversationsResponse,
     isLoading,
     isRefetching,
     refetch,
   } = useQuery<PaginatedConversations>({
-    queryKey: ['conversations', pagination.pageIndex, pagination.pageSize, search],
+    queryKey: ['conversations', pagination.pageIndex, pagination.pageSize, search, period, channelFilter, startDate, endDate],
     queryFn: async () => {
-      const res = await api.get<PaginatedConversations>(
-        `/api/conversations?page=${pagination.pageIndex + 1}&limit=${pagination.pageSize}&search=${encodeURIComponent(search)}`
-      );
+      const params = new URLSearchParams();
+      params.append('page', (pagination.pageIndex + 1).toString());
+      params.append('limit', pagination.pageSize.toString());
+      if (search) params.append('search', search);
+      if (channelFilter) params.append('channel', channelFilter);
+
+      if (period !== 'custom') {
+        params.append('period', period);
+      } else {
+        if (startDate) params.append('startDate', new Date(startDate).toISOString());
+        if (endDate) params.append('endDate', new Date(endDate).toISOString());
+      }
+
+      const res = await api.get<PaginatedConversations>(`/api/conversations?${params.toString()}`);
       return res;
     },
+    enabled: !isLoadingAuth && isAuthenticated,
   });
+
+  async function handleExportCsv() {
+    try {
+      setExporting(true);
+      const params = new URLSearchParams();
+      if (channelFilter) params.append('channel', channelFilter);
+      if (period !== 'custom') {
+        params.append('period', period);
+      } else {
+        if (startDate) params.append('startDate', new Date(startDate).toISOString());
+        if (endDate) params.append('endDate', new Date(endDate).toISOString());
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${baseUrl}/api/conversations/export-csv?${params.toString()}`, {
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        throw new Error(`Export failed with status ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `v3c-conversations-usage-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('CSV usage report downloaded successfully!');
+    } catch (err: any) {
+      console.error('CSV Export failed:', err);
+      toast.error(err.message || 'Failed to export CSV report');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -100,6 +159,24 @@ export default function ConversationsPage() {
           #{row.original.id}
         </span>
       ),
+    },
+    {
+      id: 'channel',
+      header: 'Channel',
+      cell: ({ row }) => {
+        const isVoice = row.original.VisitorSession?.channel === 'voice';
+        return isVoice ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+            <Mic className="h-3 w-3 text-emerald-600" />
+            Realtime Voice
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200">
+            <MessageSquare className="h-3 w-3 text-indigo-600" />
+            Text Chat
+          </span>
+        );
+      },
     },
     {
       accessorKey: 'Lead',
@@ -188,17 +265,100 @@ export default function ConversationsPage() {
             Conversations
           </h1>
           <p className="text-sm text-slate-500">
-            View interaction logs, transcripts, and visitor session details.
+            View interaction logs, channel differentiation (Text Chat vs Realtime Voice), and transcripts.
           </p>
         </div>
-        <button
-          onClick={() => refetch()}
-          disabled={isRefetching}
-          className="inline-flex items-center gap-1.5 self-start rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportCsv}
+            disabled={exporting}
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-500 transition disabled:opacity-50"
+          >
+            {exporting ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            CSV Usage Export
+          </button>
+
+          <button
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Toolbar: Period + Channel Filter + Custom Date-Time Picker */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Period Selector */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-700">Time Filter:</span>
+            <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1">
+              {[
+                { label: 'Past 24h', value: '24h' },
+                { label: 'Past 3 Days', value: '3d' },
+                { label: 'Past 7 Days', value: '7d' },
+                { label: 'Past 30 Days', value: '30d' },
+                { label: 'All Time', value: 'all' },
+                { label: 'Custom Range', value: 'custom' },
+              ].map((item) => (
+                <button
+                  key={item.value}
+                  onClick={() => setPeriod(item.value)}
+                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
+                    period === item.value
+                      ? 'bg-white text-indigo-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Channel Dropdown Filter */}
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+            <Filter className="h-4 w-4 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-700">Channel:</span>
+            <select
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800 focus:outline-indigo-500"
+            >
+              <option value="">All Channels</option>
+              <option value="chat">Text Chat</option>
+              <option value="voice">Realtime Voice</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Custom Date-Time Inputs */}
+        {period === 'custom' && (
+          <div className="flex items-center gap-3">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase">Start Date &amp; Time</label>
+              <input
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="mt-0.5 rounded-lg border border-slate-300 px-2.5 py-1 text-xs text-slate-800 focus:outline-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase">End Date &amp; Time</label>
+              <input
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="mt-0.5 rounded-lg border border-slate-300 px-2.5 py-1 text-xs text-slate-800 focus:outline-indigo-500"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Conversations Table */}

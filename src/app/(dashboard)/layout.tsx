@@ -53,7 +53,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, resource: 'dashboard', action: 'view' },
     { name: 'Analytics', href: '/analytics', icon: BarChart3, resource: 'analytics', action: 'view' },
     { name: 'Conversations', href: '/conversations', icon: MessageSquare, resource: 'conversations', action: 'view' },
-    { name: 'Agent Inbox (CRM)', href: '/agent-inbox', icon: Inbox, resource: 'agent_inbox', action: 'view' },
     { name: 'AI Agents & Retrieval', href: '/ai-agents', icon: Cpu, resource: 'ai_agents', action: 'view' },
     { name: 'AI Logs & Telemetry', href: '/ai-logs', icon: Activity, resource: 'ai_logs', action: 'view' },
     { name: 'Leads', href: '/leads', icon: UserCheck, resource: 'leads', action: 'view' },
@@ -82,7 +81,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Sitemap', href: '/knowledge-base/sitemap' },
         { name: 'Custom Knowledge', href: '/knowledge-base/custom' },
         { name: 'Documents', href: '/knowledge-base/documents' },
-        { name: 'Search Tester', href: '/knowledge-base/search-tester' },
       ]
     },
     {
