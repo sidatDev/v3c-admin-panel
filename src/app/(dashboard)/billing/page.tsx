@@ -14,12 +14,20 @@ import {
   Activity,
   HelpCircle,
   CheckCircle2,
-  AlertCircle
+  Building2,
+  Layers
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface TenantItem {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface BillingSummaryData {
   tenant: { id: string; name: string; slug: string } | null;
+  tenantsList?: TenantItem[];
   plan: {
     name: string;
     status: string;
@@ -51,10 +59,11 @@ export default function BillingPage() {
   const [period, setPeriod] = useState<string>('30d');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [selectedTenantId, setSelectedTenantId] = useState<string>('all');
 
   useEffect(() => {
     loadBillingSummary();
-  }, [period, startDate, endDate]);
+  }, [period, startDate, endDate, selectedTenantId]);
 
   async function loadBillingSummary() {
     try {
@@ -65,6 +74,10 @@ export default function BillingPage() {
       } else {
         if (startDate) params.append('startDate', new Date(startDate).toISOString());
         if (endDate) params.append('endDate', new Date(endDate).toISOString());
+      }
+
+      if (isSuperAdmin && selectedTenantId) {
+        params.append('tenantId', selectedTenantId);
       }
 
       const res: any = await api.get(`/api/billing/summary?${params.toString()}`);
@@ -91,9 +104,11 @@ export default function BillingPage() {
       }
 
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const res = await fetch(`${baseUrl}/api/conversations/export-csv?${params.toString()}`, {
-        credentials: 'include',
-      });
+      const endpoint = isSuperAdmin
+        ? `${baseUrl}/api/super-admin/export-usage?${params.toString()}`
+        : `${baseUrl}/api/conversations/export-csv?${params.toString()}`;
+
+      const res = await fetch(endpoint, { credentials: 'include' });
 
       if (!res.ok) {
         throw new Error(`Export failed with status ${res.status}`);
@@ -129,7 +144,9 @@ export default function BillingPage() {
             Billing &amp; Subscription Dashboard
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Real-time usage history, API cost calculations, subscription quota tracking, and accounting exports.
+            {isSuperAdmin
+              ? 'Super Admin Platform View: Aggregated multi-tenant usage history, API costs, and tenant switcher.'
+              : 'Real-time usage history, API cost calculations, subscription quota tracking, and accounting exports.'}
           </p>
         </div>
 
@@ -152,32 +169,55 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Date & Time Range Filter Bar */}
+      {/* Date & Time Range + Super Admin Tenant Switcher Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-slate-400" />
-          <span className="text-xs font-semibold text-slate-700">Billing Period:</span>
-          <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1">
-            {[
-              { label: 'Past 24h', value: '24h' },
-              { label: 'Past 3 Days', value: '3d' },
-              { label: 'Past 7 Days', value: '7d' },
-              { label: 'Past 30 Days', value: '30d' },
-              { label: 'All Time', value: 'all' },
-              { label: 'Custom Range', value: 'custom' },
-            ].map((item) => (
-              <button
-                key={item.value}
-                onClick={() => setPeriod(item.value)}
-                className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                  period === item.value
-                    ? 'bg-white text-indigo-600 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Tenant Switcher Filter for Super Admin */}
+          {isSuperAdmin && (
+            <div className="flex items-center gap-2 pr-4 border-r border-slate-200">
+              <Building2 className="h-4 w-4 text-indigo-600" />
+              <span className="text-xs font-semibold text-slate-700">Workspace:</span>
+              <select
+                value={selectedTenantId}
+                onChange={(e) => setSelectedTenantId(e.target.value)}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-indigo-500 focus:outline-none shadow-xs"
               >
-                {item.label}
-              </button>
-            ))}
+                <option value="all">🏢 All Tenants (Platform-Wide Total)</option>
+                {data?.tenantsList?.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Time Filter */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-700">Billing Period:</span>
+            <div className="flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1">
+              {[
+                { label: 'Past 24h', value: '24h' },
+                { label: 'Past 3 Days', value: '3d' },
+                { label: 'Past 7 Days', value: '7d' },
+                { label: 'Past 30 Days', value: '30d' },
+                { label: 'All Time', value: 'all' },
+                { label: 'Custom Range', value: 'custom' },
+              ].map((item) => (
+                <button
+                  key={item.value}
+                  onClick={() => setPeriod(item.value)}
+                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
+                    period === item.value
+                      ? 'bg-white text-indigo-600 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -210,16 +250,18 @@ export default function BillingPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-2">
-              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full">
-                Active Subscription
+              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <Layers className="h-3 w-3" /> {isSuperAdmin && selectedTenantId === 'all' ? 'Super Admin Global View' : 'Active Subscription'}
               </span>
               <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3" /> Account Active
+                <CheckCircle2 className="h-3 w-3" /> Platform Active
               </span>
             </div>
-            <h2 className="text-xl font-bold mt-2">{plan?.name || 'Enterprise Multi-Agent Tier'}</h2>
+            <h2 className="text-xl font-bold mt-2">
+              {isSuperAdmin && selectedTenantId === 'all' ? 'Platform Multi-Tenant Combined Totals' : (data?.tenant?.name || 'Enterprise Multi-Agent Tier')}
+            </h2>
             <p className="text-xs text-slate-300 mt-1">
-              Workspace ID: <span className="font-mono text-indigo-300">{data?.tenant?.id || 'Primary Tenant'}</span> ({data?.tenant?.name})
+              Workspace ID: <span className="font-mono text-indigo-300">{data?.tenant?.id || (isSuperAdmin ? 'all-tenants' : 'Primary Tenant')}</span>
             </p>
           </div>
 
