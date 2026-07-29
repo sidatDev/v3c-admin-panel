@@ -2,8 +2,24 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { toast } from 'sonner';
-import { Globe, Key, Copy, Eye, EyeOff, RefreshCw, UploadCloud, Plus, CheckCircle, Trash2, ShieldCheck } from 'lucide-react';
+import {
+  Globe,
+  Key,
+  Copy,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Plus,
+  Trash2,
+  ShieldCheck,
+  Edit,
+  ImageIcon,
+  Sparkles,
+  RotateCcw,
+  Layout,
+} from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -16,13 +32,16 @@ interface WebsiteItem {
   createdAt: string;
 }
 
+interface BrandingData {
+  companyName: string;
+  pageTitle: string;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+  accentColor: string;
+}
+
 interface DomainData {
-  branding: {
-    companyName: string;
-    logoUrl: string | null;
-    faviconUrl: string | null;
-    accentColor: string;
-  };
+  branding: BrandingData;
   websites: WebsiteItem[];
 }
 
@@ -34,14 +53,7 @@ export default function DomainSettingsPage() {
   // Key Visibility states
   const [showPrivateKey, setShowPrivateKey] = useState<Record<number, boolean>>({});
 
-  // Form states for Branding
-  const [companyName, setCompanyName] = useState('');
-  const [accentColor, setAccentColor] = useState('#4F46E5');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [faviconFile, setFaviconFile] = useState<File | null>(null);
-  const [selectedDomainId, setSelectedDomainId] = useState<string>('');
-
-  // Form states for New Website
+  // New Website Modal State
   const [newDomain, setNewDomain] = useState('');
   const [packageType, setPackageType] = useState('PRO');
   const [isWebsiteModalOpen, setIsWebsiteModalOpen] = useState(false);
@@ -55,33 +67,28 @@ export default function DomainSettingsPage() {
     enabled: !isLoadingAuth && isAuthenticated,
   });
 
-  const updateBrandingMutation = useMutation({
-    mutationFn: async () => {
-      const formData = new FormData();
-      if (companyName) formData.append('companyName', companyName);
-      if (accentColor) formData.append('accentColor', accentColor);
-      if (selectedDomainId) formData.append('domainId', selectedDomainId);
-      if (logoFile) formData.append('logo', logoFile);
-      if (faviconFile) formData.append('favicon', faviconFile);
+  const branding = data?.branding;
+  const websites = data?.websites || [];
 
+  const resetBrandingMutation = useMutation({
+    mutationFn: async (domainId?: string) => {
+      const formData = new FormData();
+      if (domainId) formData.append('domainId', domainId);
+      formData.append('deleteLogo', 'true');
+      formData.append('deleteFavicon', 'true');
+      formData.append('resetTitle', 'true');
       await api.put('/api/domain/branding', formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['domain-settings'] });
-      toast.success('Branding & assets saved!');
-      setLogoFile(null);
-      setFaviconFile(null);
+      toast.success('Branding reset to default.');
     },
-    onError: (error) => {
-      if (error instanceof ApiError) toast.error(error.message);
-      else toast.error('Failed to save branding settings.');
-    },
+    onError: () => toast.error('Failed to reset branding.'),
   });
 
   const addWebsiteMutation = useMutation({
     mutationFn: async (payload: { domain: string; packageType: string }) => {
-      const res = await api.post('/api/domain/websites', payload);
-      return res;
+      return await api.post('/api/domain/websites', payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['domain-settings'] });
@@ -132,9 +139,6 @@ export default function DomainSettingsPage() {
     );
   }
 
-  const branding = data?.branding;
-  const websites = data?.websites || [];
-
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -142,10 +146,10 @@ export default function DomainSettingsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <Globe className="h-6 w-6 text-indigo-600" />
-            Domain Settings & Website Keys
+            Domain & White-Label Branding Settings
           </h1>
           <p className="text-sm text-slate-500">
-            Manage white-label branding, domain verification, and public/private API keys.
+            Manage website domains, API keys, custom frontend page titles (<code className="text-xs font-mono text-indigo-600">&lt;title&gt;</code>), brand logos, and favicons per tenant.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -162,32 +166,34 @@ export default function DomainSettingsPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
           >
             <Plus className="h-4 w-4" />
-            Add Website
+            Add Website Domain
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Navigation Tabs */}
       <div className="flex border-b border-slate-200 gap-6">
         <button
           onClick={() => setActiveTab('websites')}
-          className={`pb-3 text-sm font-bold border-b-2 transition-colors ${
+          className={`pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
             activeTab === 'websites'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
+          <Key className="h-4 w-4" />
           Websites & API Keys ({websites.length})
         </button>
         <button
           onClick={() => setActiveTab('branding')}
-          className={`pb-3 text-sm font-bold border-b-2 transition-colors ${
+          className={`pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
             activeTab === 'branding'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          White-Label Branding 
+          <Sparkles className="h-4 w-4" />
+          White-Label Branding Settings (Tabular View)
         </button>
       </div>
 
@@ -203,11 +209,17 @@ export default function DomainSettingsPage() {
                       <Globe className="h-5 w-5 text-indigo-600" />
                       <h3 className="font-bold text-slate-900 text-base">{w.domain}</h3>
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100">
-                        <ShieldCheck className="h-3 w-3" /> Verified
+                        <ShieldCheck className="h-3 w-3" /> Verified Domain
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <Link
+                        href={`/domain-settings/edit?domainId=${w.id}`}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100"
+                      >
+                        <Edit className="h-3.5 w-3.5" /> Edit Branding
+                      </Link>
                       <button
                         onClick={() => regenerateKeysMutation.mutate(w.id)}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-indigo-600 border border-slate-200 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100"
@@ -218,6 +230,7 @@ export default function DomainSettingsPage() {
                       <button
                         onClick={() => deleteWebsiteMutation.mutate(w.id)}
                         className="text-slate-400 hover:text-rose-600 p-1.5"
+                        title="Delete Domain"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -278,94 +291,103 @@ export default function DomainSettingsPage() {
         </div>
       )}
 
-      {/* TAB 2: BRANDING (SeaweedFS Upload) */}
+      {/* TAB 2: WHITE-LABEL BRANDING (TABULAR VIEW) */}
       {activeTab === 'branding' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">White-Label Branding Settings</h3>
-
-          <div className="space-y-4 max-w-lg">
+        <div className="space-y-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white shadow-md">
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Target Website / Registered Domain</label>
-              <select
-                value={selectedDomainId}
-                onChange={(e) => setSelectedDomainId(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs text-slate-900 outline-none focus:border-indigo-500"
-              >
-                <option value="">-- Apply to All Registered Websites (Global Default) --</option>
-                {websites.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.domain} (ID: {w.id})
-                  </option>
-                ))}
-              </select>
-              <p className="text-[11px] text-slate-400 mt-1">
-                Select a specific domain (e.g. efuinsurance.com) to scope this brand logo, company name, and accent color.
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Layout className="h-5 w-5 text-indigo-400" />
+                Tenant White-Label Branding Directory
+              </h2>
+              <p className="text-xs text-slate-300 mt-1">
+                View and edit brand names, frontend <code className="text-indigo-300">&lt;title&gt;</code> page headers, logos, favicons, and theme colors in a single structured table.
               </p>
             </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Company / Brand Name</label>
-              <input
-                type="text"
-                defaultValue={branding?.companyName || 'V3C Platform'}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand Accent Color</label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="h-10 w-12 rounded-lg border border-slate-200 p-1 cursor-pointer bg-white"
-                />
-                <input
-                  type="text"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="w-32 rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono text-slate-900 outline-none focus:border-indigo-500 uppercase"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand Logo</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand Favicon </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFaviconFile(e.target.files?.[0] || null)}
-                className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-              />
-            </div>
-
-            <button
-              onClick={() => updateBrandingMutation.mutate()}
-              disabled={updateBrandingMutation.isPending}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+            <Link
+              href="/domain-settings/edit"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 shadow-sm"
             >
-              <UploadCloud className="h-4 w-4" />
-              Save Branding Settings
-            </button>
+              <Edit className="h-4 w-4" />
+              Edit Global Branding Page
+            </Link>
+          </div>
+
+          {/* TABULAR BRANDING TABLE */}
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-600">
+                <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th scope="col" className="px-6 py-4">Domain / Target Scope</th>
+                    <th scope="col" className="px-6 py-4">Company / Brand Name</th>
+                    <th scope="col" className="px-6 py-4">Frontend Page Title (&lt;title&gt;)</th>
+                    <th scope="col" className="px-6 py-4">Accent Color</th>
+                    <th scope="col" className="px-6 py-4 text-right">Actions (CRUD)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {/* Domain Specific Rows */}
+                  {websites.map((w) => (
+                    <tr key={w.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-indigo-600" />
+                          <span className="font-bold text-slate-900">{w.domain}</span>
+                          <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-100">
+                            Verified
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-slate-800">
+                        {branding?.companyName || 'V3C Platform'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <code className="rounded bg-slate-100 px-2 py-1 font-mono text-[11px] text-indigo-700 font-semibold max-w-[220px] truncate block">
+                          {branding?.pageTitle || `${branding?.companyName || 'V3C Platform'}'s Workspace`}
+                        </code>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-5 w-5 rounded-full border border-slate-300"
+                            style={{ backgroundColor: branding?.accentColor || '#4F46E5' }}
+                          />
+                          <span className="font-mono text-[11px] font-semibold text-slate-700 uppercase">
+                            {branding?.accentColor || '#4F46E5'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/domain-settings/edit?domainId=${w.id}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                            Edit Page
+                          </Link>
+                          <button
+                            onClick={() => resetBrandingMutation.mutate(String(w.id))}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:border-rose-200 transition-colors"
+                            title="Reset Domain Branding"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
       {/* Add Website Modal */}
       {isWebsiteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4">
             <h3 className="text-lg font-bold text-slate-900">Add Website Domain</h3>
 
