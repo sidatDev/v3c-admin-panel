@@ -102,13 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.cancelQueries();
       queryClient.setQueryData(['auth-user'], null);
       queryClient.clear();
-      router.push('/login');
     },
     onError: () => {
       queryClient.cancelQueries();
       queryClient.setQueryData(['auth-user'], null);
       queryClient.clear();
-      router.push('/login');
     },
   });
 

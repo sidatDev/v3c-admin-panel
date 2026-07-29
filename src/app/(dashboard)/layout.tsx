@@ -182,13 +182,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [isLoading, user, pathname, router]);
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <div className="relative flex flex-col items-center">
           <div className="h-16 w-16 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent shadow-lg shadow-indigo-500/20" />
           <p className="mt-4 text-sm font-semibold tracking-wide text-indigo-400 animate-pulse">
-            HYDRATING USER SESSION...
+            {isLoading ? 'HYDRATING USER SESSION...' : 'REDIRECTING TO LOGIN...'}
           </p>
         </div>
       </div>
