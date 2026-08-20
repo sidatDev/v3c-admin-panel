@@ -29,8 +29,11 @@ export default function ForgotPasswordPage() {
       await api.post('/api/auth/forgot-password', data);
       setIsSuccess(true);
       toast.success('Password reset email sent successfully!');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[ForgotPassword] Error sending reset email:', error);
       if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else if (error?.message) {
         toast.error(error.message);
       } else {
         toast.error('An unexpected error occurred. Please try again.');

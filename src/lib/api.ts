@@ -27,14 +27,32 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     credentials: options.credentials || 'include',
   };
 
-  const response = await fetch(url, config);
+  let response: Response;
+  try {
+    response = await fetch(url, config);
+  } catch (err: any) {
+    if (err instanceof ApiError) throw err;
+    const isNetworkError = err?.message === 'Failed to fetch' || err?.name === 'TypeError';
+    const message = isNetworkError
+      ? `Cannot reach backend API at ${API_BASE_URL}. Please check server status and CORS configuration.`
+      : (err?.message || 'Network request failed');
+    throw new ApiError(message, 0, err);
+  }
 
   let data: any;
   const contentType = response.headers.get('content-type');
   if (contentType && contentType.includes('application/json')) {
-    data = await response.json();
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
   } else {
-    data = await response.text();
+    try {
+      data = await response.text();
+    } catch {
+      data = null;
+    }
   }
 
   if (!response.ok) {

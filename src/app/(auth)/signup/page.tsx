@@ -32,8 +32,11 @@ export default function SignupPage() {
     try {
       await signup(data);
       toast.success('Successfully created account and logged in!');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[Signup] Error during registration:', error);
       if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else if (error?.message) {
         toast.error(error.message);
       } else {
         toast.error('An unexpected error occurred. Please try again.');

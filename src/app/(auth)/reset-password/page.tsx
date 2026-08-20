@@ -46,8 +46,11 @@ function ResetPasswordForm() {
       setTimeout(() => {
         router.push('/login');
       }, 3000);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[ResetPassword] Error resetting password:', error);
       if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else if (error?.message) {
         toast.error(error.message);
       } else {
         toast.error('An unexpected error occurred. Please try again.');

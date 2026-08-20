@@ -31,7 +31,15 @@
   --radius: 0.5rem;
 }
 
+body {
+  font-family: var(--font-tasa-text), sans-serif;
+}
+
 @theme {
+  --font-sans: var(--font-tasa-text), sans-serif;
+  --font-display: var(--font-tasa-display), sans-serif;
+  --font-deck: var(--font-tasa-deck), sans-serif;
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -72,6 +80,91 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ==========================================================================
+   Tier 1: Display Headings (≥ 36px) — TASA Orbiter Display
+   ========================================================================== */
+.h1 {
+  font-family: var(--font-tasa-display);
+  font-weight: 500;
+  font-size: clamp(2.25rem, 5vw + 1rem, 4.75rem);     /* 36px → 76px */
+  line-height: 1.0526;
+  letter-spacing: -2px;
+}
+.h2 {
+  font-family: var(--font-tasa-display);
+  font-weight: 500;
+  font-size: clamp(1.875rem, 4vw + 0.8rem, 3.8125rem); /* 30px → 61px */
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+}
+.h3 {
+  font-family: var(--font-tasa-display);
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3vw + 0.6rem, 3.0625rem);   /* 24px → 49px */
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+
+/* ==========================================================================
+   Tier 2: Deck Subheadings (20px – 36px) — TASA Orbiter Deck
+   ========================================================================== */
+.h4 {
+  font-family: var(--font-tasa-deck);
+  font-weight: 500;
+  font-size: clamp(1.25rem, 2vw + 0.5rem, 2.4375rem);   /* 20px → 39px */
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+.h5 {
+  font-family: var(--font-tasa-deck);
+  font-weight: 500;
+  font-size: clamp(1.125rem, 1.5vw + 0.4rem, 1.9375rem); /* 18px → 31px */
+  line-height: 1.2;
+  letter-spacing: -0.25px;
+}
+
+/* ==========================================================================
+   Tier 3: Text & Body (< 20px) — TASA Orbiter Text
+   ========================================================================== */
+.body-large {
+  font-family: var(--font-tasa-text);
+  font-weight: 400;
+  font-size: clamp(1.0625rem, 1vw + 0.3rem, 1.25rem);   /* 17px → 20px */
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+.body-medium {
+  font-family: var(--font-tasa-text);
+  font-weight: 400;
+  font-size: clamp(1rem, 0.8vw + 0.3rem, 1.125rem);     /* 16px → 18px */
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.body-small {
+  font-family: var(--font-tasa-text);
+  font-weight: 400;
+  font-size: clamp(0.875rem, 0.5vw + 0.3rem, 1rem);     /* 14px → 16px */
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+.label-large {
+  font-family: var(--font-tasa-text);
+  font-weight: 500;
+  font-size: clamp(0.75rem, 0.5vw + 0.3rem, 0.875rem);  /* 12px → 14px */
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+/* Reusable display heading with glyph clipping prevention */
+.heading {
+  font-family: var(--font-tasa-display);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  font-size: clamp(1.875rem, 4vw + 1rem, 4.75rem);
+  line-height: 1.0526;
+  padding-block: 0.12em;
+}
+
 /* Custom Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;
@@ -107,3 +200,4 @@
 .page-enter {
   animation: fade-in 0.25s ease-out, slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+

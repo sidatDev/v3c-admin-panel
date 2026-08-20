@@ -1,15 +1,10 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import QueryProvider from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
+import { tasaDisplay, tasaDeck, tasaText } from '@/lib/fonts';
 import './globals.css';
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-  display: 'swap',
-});
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
@@ -33,10 +28,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${tasaDisplay.variable} ${tasaDeck.variable} ${tasaText.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground font-sans antialiased" suppressHydrationWarning>
+      <body className={`${tasaDisplay.variable} ${tasaDeck.variable} ${tasaText.variable} ${geistMono.variable} min-h-full bg-background text-foreground font-sans antialiased`} suppressHydrationWarning>
         <QueryProvider>
           <AuthProvider>
             <div className="flex min-h-screen flex-col">
@@ -49,3 +44,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -30,8 +30,11 @@ export default function LoginPage() {
     try {
       await login(data);
       toast.success('Successfully logged in!');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[Login] Error during authentication:', error);
       if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else if (error?.message) {
         toast.error(error.message);
       } else {
         toast.error('An unexpected error occurred. Please try again.');
