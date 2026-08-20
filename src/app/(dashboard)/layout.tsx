@@ -51,23 +51,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Group menu items based on sidebar design
   const mainNavItems: SidebarItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, resource: 'dashboard', action: 'view' },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3, resource: 'analytics', action: 'view' },
     { name: 'Conversations', href: '/conversations', icon: MessageSquare, resource: 'conversations', action: 'view' },
-    { name: 'AI Agents & Retrieval', href: '/ai-agents', icon: Cpu, resource: 'ai_agents', action: 'view' },
-    { name: 'AI Logs & Telemetry', href: '/ai-logs', icon: Activity, resource: 'ai_logs', action: 'view' },
     { name: 'Leads', href: '/leads', icon: UserCheck, resource: 'leads', action: 'view' },
+    { name: 'AI Agents & Retrieval', href: '/ai-agents', icon: Cpu, resource: 'ai_agents', action: 'view' },
+    { 
+      name: 'AI Search', 
+      href: '/ai-search', 
+      icon: Sparkles, 
+      resource: 'ai_search', 
+      action: 'view' 
+    },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3, resource: 'analytics', action: 'view' },
+    { name: 'AI Logs & Telemetry', href: '/ai-logs', icon: Activity, resource: 'ai_logs', action: 'view' },
     { 
       name: 'Manage Widget', 
       href: '/manage-widget', 
       icon: Settings,
       resource: 'widget',
-      action: 'view'
-    },
-    { 
-      name: 'Integrations', 
-      href: '/integrations', 
-      icon: Grid,
-      resource: 'integrations',
       action: 'view'
     },
     {
@@ -82,13 +82,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Custom Knowledge', href: '/knowledge-base/custom' },
         { name: 'Documents', href: '/knowledge-base/documents' },
       ]
-    },
-    {
-      name: 'AI Search',
-      href: '/ai-search',
-      icon: Sparkles,
-      resource: 'ai_search',
-      action: 'view'
     },
     { 
       name: 'Team Management', 
