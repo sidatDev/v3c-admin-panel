@@ -2,15 +2,16 @@
 
 :root {
   --background: #f8fafc;
-  --foreground: #0f172a;
+  --foreground: var(--foreground-override, #0f172a);
   
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: var(--foreground-override, #0f172a);
   
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: var(--foreground-override, #0f172a);
   
-  --primary: 79 70 229; /* Indigo 600: #4f46e5 */
+  /* Tailwind-consumed theme tokens that accept runtime overrides */
+  --primary: var(--primary-rgb-override, 79 70 229); /* Indigo 600: #4f46e5 */
   --primary-foreground: 255 255 255;
   
   --secondary: #f1f5f9;
@@ -19,20 +20,34 @@
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
   
-  --accent: #f8fafc;
-  --accent-foreground: #0f172a;
+  --accent: var(--accent-override, #f8fafc);
+  --accent-foreground: var(--foreground-override, #0f172a);
   
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #6366f1;
-  --radius: 0.5rem;
+  --ring: var(--primary-override, #6366f1);
+  --radius: var(--radius-override, 0.5rem);
+
+  /* Direct hex variables for components & inline styles */
+  --primary-hex: var(--primary-override, #4f46e5);
+  --accent-hex: var(--accent-override, #f59e0b);
+  --sidebar-hex: var(--sidebar-override, #FFFFFF);
+  --sidebar-active-hex: var(--sidebar-active-override, #4f46e5);
+  --sidebar-active-text-hex: var(--sidebar-active-text-override, #FFFFFF);
+  --text-hex: var(--text-override, #0f172a);
+  --text-hover-hex: var(--text-hover-override, #4f46e5);
 }
 
 body {
   font-family: var(--font-tasa-text), sans-serif;
+  color: var(--foreground);
+}
+
+a:hover {
+  color: var(--text-hover-hex);
 }
 
 @theme {
@@ -45,17 +60,34 @@ body {
   --color-ring: var(--ring);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover-foreground: var(--popover-foreground);
   
   --color-primary: rgb(var(--primary));
   --color-primary-foreground: rgb(var(--primary-foreground));
   
+  /* Dynamic mapping so all existing indigo classes (buttons, badges, icons, borders, focus rings) inherit the chosen theme */
+  --color-indigo-700: color-mix(in srgb, var(--primary-hex, #4f46e5) 85%, black);
+  --color-indigo-600: var(--primary-hex, #4f46e5);
+  --color-indigo-500: color-mix(in srgb, var(--primary-hex, #4f46e5) 85%, white);
+  --color-indigo-400: color-mix(in srgb, var(--primary-hex, #4f46e5) 70%, white);
+  --color-indigo-300: color-mix(in srgb, var(--primary-hex, #4f46e5) 50%, white);
+  --color-indigo-200: color-mix(in srgb, var(--primary-hex, #4f46e5) 30%, white);
+  --color-indigo-100: color-mix(in srgb, var(--primary-hex, #4f46e5) 15%, white);
+  --color-indigo-50: color-mix(in srgb, var(--primary-hex, #4f46e5) 8%, white);
+
+  /* Dynamic mapping for text typography */
+  --color-slate-900: var(--text-hex, #0f172a);
+  --color-slate-800: color-mix(in srgb, var(--text-hex, #0f172a) 88%, black);
+  --color-slate-700: color-mix(in srgb, var(--text-hex, #0f172a) 75%, #475569);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   
-  --color-accent: var(--accent);
+  --color-accent: var(--accent-hex, var(--accent));
   --color-accent-foreground: var(--accent-foreground);
   
   --color-destructive: var(--destructive);
