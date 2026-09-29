@@ -38,6 +38,7 @@ interface AgentItem {
   voiceWarmth: number;
   autoLanguageDetection: boolean;
   supportedLanguages: string[];
+  voiceSettings?: any;
   isActive: boolean;
   RetrievalConfig?: {
     similarityThreshold: number;
@@ -408,6 +409,21 @@ export default function AiAgentsPage() {
                       <option value="cedar">Cedar (Male - Deep)</option>
                       <option value="nova">Nova (Female - Energetic)</option>
                       <option value="onyx">Onyx (Male - Authoritative)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Character Gender / Dialect</label>
+                    <select
+                      value={(selectedAgent.voiceSettings as any)?.gender || (['shimmer', 'coral', 'sage', 'verse', 'marin', 'nova'].includes((selectedAgent.voice || '').toLowerCase()) ? 'female' : 'male')}
+                      onChange={(e) => {
+                        const nextSettings = { ...((selectedAgent.voiceSettings as object) || {}), gender: e.target.value };
+                        setSelectedAgent({ ...selectedAgent, voiceSettings: nextSettings });
+                      }}
+                      className="w-full rounded-xl bg-white border border-slate-300 px-4 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
+                    >
+                      <option value="male">Male (Male Dialect - کرتا ہوں / sakta hoon)</option>
+                      <option value="female">Female (Female Dialect - کرتی ہوں / sakti hoon)</option>
                     </select>
                   </div>
 
