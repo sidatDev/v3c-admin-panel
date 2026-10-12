@@ -46,7 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryKey: ['auth-user'],
     queryFn: async () => {
       try {
-        const response = await api.get<{ status: string; data: { user: User; permissions: string[] } }>('/api/auth/me');
+        const response = await api.get<{ status: string; data: { token?: string; user: User; permissions: string[] } }>('/api/auth/me');
+        if (typeof window !== 'undefined' && (response.data as any)?.token) {
+          localStorage.setItem('v3c_token', (response.data as any).token);
+        }
         return response.data;
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
@@ -69,7 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.post<{ status: string; data: { user: User; permissions: string[] } }>('/api/auth/login', data);
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
+      if (typeof window !== 'undefined' && data?.token) {
+        localStorage.setItem('v3c_token', data.token);
+      }
       queryClient.setQueryData(['auth-user'], data);
       const targetSlug = data.user?.tenantSlug || 'v3c-system-tenant';
       router.push(`/${targetSlug}/dashboard`);
@@ -82,7 +88,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.post<{ status: string; data: { user: User; permissions: string[] } }>('/api/auth/signup', data);
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
+      if (typeof window !== 'undefined' && data?.token) {
+        localStorage.setItem('v3c_token', data.token);
+      }
       queryClient.setQueryData(['auth-user'], data);
       const targetSlug = data.user?.tenantSlug || 'v3c-system-tenant';
       router.push(`/${targetSlug}/dashboard`);
@@ -99,11 +108,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     onSuccess: () => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('v3c_token');
+      }
       queryClient.cancelQueries();
       queryClient.setQueryData(['auth-user'], null);
       queryClient.clear();
     },
     onError: () => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('v3c_token');
+      }
       queryClient.cancelQueries();
       queryClient.setQueryData(['auth-user'], null);
       queryClient.clear();

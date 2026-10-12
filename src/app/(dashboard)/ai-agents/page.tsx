@@ -38,7 +38,6 @@ interface AgentItem {
   voiceWarmth: number;
   autoLanguageDetection: boolean;
   supportedLanguages: string[];
-  voiceSettings?: any;
   isActive: boolean;
   RetrievalConfig?: {
     similarityThreshold: number;
@@ -50,12 +49,14 @@ interface AgentItem {
   };
   AgentTopicLink?: { id: string; title: string; url: string; displayOrder: number }[];
   voiceSettings?: {
+    gender?: string;
     vadThreshold?: number;
     vadSilenceDurationMs?: number;
     vadPrefixPaddingMs?: number;
     voiceResponseDelayMs?: number;
     minTranscriptLength?: number;
     minWordCount?: number;
+    [key: string]: any;
   };
 }
 

@@ -46,7 +46,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [kbExpanded, setKbExpanded] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    '/knowledge-base': false,
+    '/leads': true,
+  });
+
+  const toggleSubmenu = (href: string) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [href]: prev[href] !== undefined ? !prev[href] : false,
+    }));
+  };
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [themeDrawerOpen, setThemeDrawerOpen] = useState(false);
 
@@ -73,7 +83,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const mainNavItems: SidebarItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, resource: 'dashboard', action: 'view' },
     { name: 'Conversations', href: '/conversations', icon: MessageSquare, resource: 'conversations', action: 'view' },
-    { name: 'Leads', href: '/leads', icon: UserCheck, resource: 'leads', action: 'view' },
+    { 
+      name: 'Leads', 
+      href: '/leads', 
+      icon: UserCheck, 
+      resource: 'leads', 
+      action: 'view',
+      subItems: [
+        { name: 'Interested Clients', href: '/leads/interested' },
+        { name: 'Potential Clients', href: '/leads/potential' },
+      ]
+    },
     { name: 'AI Agents & Retrieval', href: '/ai-agents', icon: Cpu, resource: 'ai_agents', action: 'view' },
     { 
       name: 'AI Search', 
@@ -281,10 +301,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
               const isActive = isRouteActive(item.href, item.subItems);
               
               if (item.subItems) {
+                const isSubmenuExpanded = expandedMenus[item.href] !== undefined ? expandedMenus[item.href] : isActive;
                 return (
                   <div key={item.name} className="space-y-1">
                     <button
-                      onClick={() => setKbExpanded(!kbExpanded)}
+                      onClick={() => toggleSubmenu(item.href)}
                       className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                         isActive 
                           ? isLightSidebar ? 'bg-slate-100 text-slate-900 font-semibold' : 'bg-white/10 text-white font-semibold' 
@@ -298,11 +319,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         />
                         <span>{item.name}</span>
                       </div>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${kbExpanded ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isSubmenuExpanded ? 'rotate-180' : ''}`} />
                     </button>
                     
                     {/* Collapsible Submenus */}
-                    {kbExpanded && (
+                    {isSubmenuExpanded && (
                       <div className={`pl-9 space-y-1 border-l ml-5 mt-1 ${isLightSidebar ? 'border-slate-200' : 'border-white/10'}`}>
                         {item.subItems.map((sub) => {
                           const subActive = isRouteActive(sub.href);

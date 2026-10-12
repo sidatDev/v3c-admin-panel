@@ -1,4 +1,14 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+function getApiBaseUrl(): string {
+  let base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' && base.includes('127.0.0.1')) {
+      base = base.replace('127.0.0.1', 'localhost');
+    } else if (window.location.hostname === '127.0.0.1' && base.includes('localhost')) {
+      base = base.replace('localhost', '127.0.0.1');
+    }
+  }
+  return base;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -13,11 +23,20 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}${path}`;
   const headers = new Headers(options.headers);
 
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
+  }
+
+  // Attach token from localStorage if available as robust fallback for cross-site cookie restrictions
+  if (typeof window !== 'undefined' && !headers.has('Authorization')) {
+    const token = localStorage.getItem('v3c_token');
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
   }
 
   // Always send cookies/credentials
@@ -34,7 +53,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (err instanceof ApiError) throw err;
     const isNetworkError = err?.message === 'Failed to fetch' || err?.name === 'TypeError';
     const message = isNetworkError
-      ? `Cannot reach backend API at ${API_BASE_URL}. Please check server status and CORS configuration.`
+      ? `Cannot reach backend API at ${baseUrl}. Please check server status and CORS configuration.`
       : (err?.message || 'Network request failed');
     throw new ApiError(message, 0, err);
   }

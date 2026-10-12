@@ -1,13 +1,22 @@
 'use client';
 
-import React from 'react';
-import ComingSoon from '@/components/coming-soon';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function LeadsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const tenantSlug = user?.tenantSlug || 'v3c-system-tenant';
+    router.replace(`/${tenantSlug}/leads/interested`);
+  }, [router, user]);
+
   return (
-    <ComingSoon 
-      title="Lead Management" 
-      description="Track details, metadata, and status of contact details collected by the AI widget." 
-    />
+    <div className="flex h-64 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+    </div>
   );
 }
+
