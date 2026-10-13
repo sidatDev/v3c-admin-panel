@@ -22,6 +22,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { useAuth } from '@/providers/auth-provider';
 import { usePathname } from 'next/navigation';
 import { ChatHistoryModal } from '@/components/leads/chat-history-modal';
+import { LeadSearchFilter, LeadFilterValues } from '@/components/leads/lead-search-filter';
 
 interface InterestedClientItem {
   id: number;
@@ -70,7 +71,12 @@ export default function InterestedClientsPage() {
     pageIndex: 0,
     pageSize: 10,
   });
-  const [search, setSearch] = useState('');
+  const [filterValues, setFilterValues] = useState<LeadFilterValues>({
+    criteria: 'client',
+    term: '',
+    startDate: '',
+    endDate: '',
+  });
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -83,20 +89,46 @@ export default function InterestedClientsPage() {
     error,
     refetch,
   } = useQuery<PaginatedResponse>({
-    queryKey: ['interested-leads', pagination.pageIndex, pagination.pageSize, search, targetSlug, user?.tenantId],
+    queryKey: [
+      'interested-leads',
+      pagination.pageIndex,
+      pagination.pageSize,
+      filterValues.criteria,
+      filterValues.term,
+      filterValues.startDate,
+      filterValues.endDate,
+      targetSlug,
+      user?.tenantId,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append('page', (pagination.pageIndex + 1).toString());
       params.append('limit', pagination.pageSize.toString());
       if (targetSlug) params.append('slug', targetSlug);
       if (user?.tenantId) params.append('tenantId', user.tenantId);
-      if (search) params.append('search', search);
+
+      if (filterValues.criteria === 'date') {
+        if (filterValues.startDate) params.append('startDate', filterValues.startDate);
+        if (filterValues.endDate) params.append('endDate', filterValues.endDate);
+      } else if (filterValues.term.trim()) {
+        params.append(filterValues.criteria, filterValues.term.trim());
+      }
 
       return api.get<PaginatedResponse>(`/api/leads/interested?${params.toString()}`);
     },
     enabled: !isLoadingAuth && isAuthenticated,
     refetchInterval: 10000,
   });
+
+  const handleResetFilter = () => {
+    setFilterValues({
+      criteria: 'client',
+      term: '',
+      startDate: '',
+      endDate: '',
+    });
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
 
   const handleOpenChat = (clientId: number) => {
     setSelectedClientId(clientId);
@@ -316,6 +348,16 @@ export default function InterestedClientsPage() {
         </div>
       </div>
 
+      {/* FIELD-SPECIFIC SEARCH & FILTER BAR */}
+      <LeadSearchFilter
+        value={filterValues}
+        onChange={(updater) => {
+          setFilterValues(updater);
+          setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+        }}
+        onReset={handleResetFilter}
+      />
+
       {/* DATA TABLE */}
       <DataTable
         columns={columns}
@@ -324,9 +366,6 @@ export default function InterestedClientsPage() {
         pageCount={meta.totalPages}
         pagination={pagination}
         onPaginationChange={setPagination}
-        searchQuery={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search by name, email, phone, IP, or message..."
       />
 
       {/* CHAT HISTORY MODAL */}
