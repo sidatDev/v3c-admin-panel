@@ -25,7 +25,8 @@ const RESERVED_PATHS = [
   'domain-settings',
   'billing',
   'account',
-  'notifications'
+  'notifications',
+  'departments'
 ];
 
 export function middleware(request: NextRequest) {

@@ -55,3 +55,12 @@ export const assignRoleSchema = z.object({
 });
 
 export type AssignRoleInput = z.infer<typeof assignRoleSchema>;
+
+export const departmentSchema = z.object({
+  name: z.string().min(2, 'Department name must be at least 2 characters').max(60, 'Department name must be under 60 characters'),
+  status: z.enum(['ACTIVE', 'INACTIVE']),
+  tenantId: z.string().optional(),
+});
+
+export type DepartmentInput = z.infer<typeof departmentSchema>;
+

@@ -39,6 +39,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     }
   }
 
+  // Attach active tenant ID if set (for L1 group multi-tenant switching)
+  if (typeof window !== 'undefined' && !headers.has('x-tenant-id')) {
+    const activeTenantId = localStorage.getItem('v3c_active_tenant_id');
+    if (activeTenantId) {
+      headers.set('x-tenant-id', activeTenantId);
+    }
+  }
+
   // Always send cookies/credentials
   const config: RequestInit = {
     ...options,

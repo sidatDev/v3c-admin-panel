@@ -28,7 +28,11 @@ import {
   Activity,
   Cpu,
   Palette,
+  FolderTree,
+  Inbox,
 } from 'lucide-react';
+import { TenantSwitcher } from '@/components/tenant-switcher';
+import { resolveRoleLevel, isNavItemVisible, filterSubItems } from '@/lib/nav-config';
 
 interface SidebarItem {
   name: string;
@@ -41,7 +45,7 @@ interface SidebarItem {
 }
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
-  const { user, logout, checkPermission, isLoading } = useAuth();
+  const { user, permissions, logout, checkPermission, isLoading } = useAuth();
   const { theme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
@@ -82,6 +86,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   // Group menu items based on sidebar design
   const mainNavItems: SidebarItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, resource: 'dashboard', action: 'view' },
+    { name: 'Agent Inbox', href: '/agent-inbox', icon: Inbox, resource: 'conversations', action: 'view' },
     { name: 'Conversations', href: '/conversations', icon: MessageSquare, resource: 'conversations', action: 'view' },
     { 
       name: 'Leads', 
@@ -128,8 +133,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       name: 'Team Management', 
       href: '/team-management', 
       icon: Users,
-      resource: 'team',
+      resource: 'team', 
       action: 'view'
+    },
+    { 
+      name: 'Departments', 
+      href: '/departments', 
+      icon: FolderTree, 
+      resource: 'team', 
+      action: 'view' 
     },
     { 
       name: 'Roles & Permissions', 
@@ -151,17 +163,41 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     { name: 'Billing', href: '/billing', icon: CreditCard, resource: 'billing', action: 'view' },
   ];
 
-  // Helper to filter sidebar items by permission
+  const roleLevel = resolveRoleLevel(user);
+
+  // Helper to filter sidebar items by role-level and fine-grained permissions
   const filterItems = (items: SidebarItem[]) => {
-    return items.filter(item => {
-      if (!item.resource || !item.action) return true;
-      return checkPermission(item.resource, item.action);
-    });
+    return items
+      .filter(item => isNavItemVisible(item.href, roleLevel, permissions, item.resource, item.action))
+      .map(item => {
+        if (item.subItems) {
+          return {
+            ...item,
+            subItems: filterSubItems(item.subItems, roleLevel),
+          };
+        }
+        return item;
+      });
   };
 
   const filteredMainItems = filterItems(mainNavItems);
   const filteredDomainItems = filterItems(domainNavItems);
-  const tenantSlug = user?.tenantSlug || 'v3c-system-tenant';
+
+  const RESERVED_PATHS = React.useMemo(() => [
+    'dashboard', 'analytics', 'conversations', 'agent-inbox', 'ai-agents', 'ai-logs',
+    'leads', 'manage-widget', 'integrations', 'knowledge-base', 'ai-search',
+    'team-management', 'departments', 'roles-permissions', 'domain-settings', 'billing', 'account', 'notifications'
+  ], []);
+
+  const currentPathSlug = React.useMemo(() => {
+    const first = pathname.split('/').filter(Boolean)[0];
+    if (first && !RESERVED_PATHS.includes(first) && !first.includes('.')) {
+      return first;
+    }
+    return null;
+  }, [pathname, RESERVED_PATHS]);
+
+  const tenantSlug = currentPathSlug || (typeof window !== 'undefined' ? localStorage.getItem('v3c_active_tenant_slug') : null) || user?.tenantSlug || 'v3c-system-tenant';
 
   // Helper to build tenant slug URLs
   const getTenantHref = (rawPath: string) => {
@@ -188,31 +224,22 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     return false;
   };
 
-  // Redirect bare routes or mismatched URL slugs to user's assigned tenant slug
+  // Redirect bare reserved routes to user's active tenant slug
   React.useEffect(() => {
     if (isLoading || !user) return;
-    const currentSlug = user.tenantSlug || 'v3c-system-tenant';
-    const isSuperAdmin = user.role === 'super_admin';
+    const currentSlug = (typeof window !== 'undefined' ? localStorage.getItem('v3c_active_tenant_slug') : null) || user.tenantSlug || 'v3c-system-tenant';
 
     const segments = pathname.split('/').filter(Boolean);
     if (segments.length === 0) return;
 
     const firstSegment = segments[0];
-    
-    const RESERVED_PATHS = [
-      'dashboard', 'analytics', 'conversations', 'agent-inbox', 'ai-agents', 'ai-logs',
-      'leads', 'manage-widget', 'integrations', 'knowledge-base', 'ai-search',
-      'team-management', 'roles-permissions', 'domain-settings', 'billing', 'account', 'notifications'
-    ];
 
     if (RESERVED_PATHS.includes(firstSegment)) {
       const cleanPath = pathname.replace(/^\//, '');
       router.replace(`/${currentSlug}/${cleanPath}`);
-    } else if (firstSegment !== currentSlug && !isSuperAdmin) {
-      const pathSuffix = segments.slice(1).join('/');
-      router.replace(`/${currentSlug}/${pathSuffix || 'dashboard'}`);
     }
-  }, [isLoading, user, pathname, router]);
+    // Relaxed: do NOT redirect or bounce back when visiting other valid tenant slugs
+  }, [isLoading, user, pathname, router, RESERVED_PATHS]);
 
   if (isLoading || !user) {
     return (
@@ -293,144 +320,148 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         {/* NAVIGATION LINKS */}
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-7">
           {/* Main Module Category */}
-          <div className="space-y-1">
-            <p className={`px-3 text-[10px] font-bold tracking-wider uppercase ${isLightSidebar ? 'text-slate-400' : 'text-slate-400/80'}`}>
-              Main Operations
-            </p>
-            {filteredMainItems.map((item) => {
-              const isActive = isRouteActive(item.href, item.subItems);
-              
-              if (item.subItems) {
-                const isSubmenuExpanded = expandedMenus[item.href] !== undefined ? expandedMenus[item.href] : isActive;
-                return (
-                  <div key={item.name} className="space-y-1">
-                    <button
-                      onClick={() => toggleSubmenu(item.href)}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                        isActive 
-                          ? isLightSidebar ? 'bg-slate-100 text-slate-900 font-semibold' : 'bg-white/10 text-white font-semibold' 
-                          : isLightSidebar ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon 
-                          className="h-4 w-4" 
-                          style={{ color: isActive ? theme.accentColor : undefined }} 
-                        />
-                        <span>{item.name}</span>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${isSubmenuExpanded ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {/* Collapsible Submenus */}
-                    {isSubmenuExpanded && (
-                      <div className={`pl-9 space-y-1 border-l ml-5 mt-1 ${isLightSidebar ? 'border-slate-200' : 'border-white/10'}`}>
-                        {item.subItems.map((sub) => {
-                          const subActive = isRouteActive(sub.href);
-                          return (
-                            <Link
-                              key={sub.name}
-                              href={getTenantHref(sub.href)}
-                              onClick={() => setMobileMenuOpen(false)}
-                              className={`block rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                                subActive 
-                                  ? isLightSidebar ? 'text-slate-900 bg-slate-100 font-semibold' : 'text-white bg-white/15 font-semibold' 
-                                  : isLightSidebar ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-white hover:bg-white/5'
-                              }`}
-                              style={subActive ? { borderLeft: `2px solid ${theme.accentColor}` } : {}}
-                            >
-                              {sub.name}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
+          {filteredMainItems.length > 0 && (
+            <div className="space-y-1">
+              <p className={`px-3 text-[10px] font-bold tracking-wider uppercase ${isLightSidebar ? 'text-slate-400' : 'text-slate-400/80'}`}>
+                Main Operations
+              </p>
+              {filteredMainItems.map((item) => {
+                const isActive = isRouteActive(item.href, item.subItems);
+                
+                if (item.subItems && item.subItems.length > 0) {
+                  const isSubmenuExpanded = expandedMenus[item.href] !== undefined ? expandedMenus[item.href] : isActive;
+                  return (
+                    <div key={item.name} className="space-y-1">
+                      <button
+                        onClick={() => toggleSubmenu(item.href)}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                          isActive 
+                            ? isLightSidebar ? 'bg-slate-100 text-slate-900 font-semibold' : 'bg-white/10 text-white font-semibold' 
+                            : isLightSidebar ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <item.icon 
+                            className="h-4 w-4" 
+                            style={{ color: isActive ? theme.accentColor : undefined }} 
+                          />
+                          <span>{item.name}</span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${isSubmenuExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {/* Collapsible Submenus */}
+                      {isSubmenuExpanded && (
+                        <div className={`pl-9 space-y-1 border-l ml-5 mt-1 ${isLightSidebar ? 'border-slate-200' : 'border-white/10'}`}>
+                          {item.subItems.map((sub) => {
+                            const subActive = isRouteActive(sub.href);
+                            return (
+                              <Link
+                                key={sub.name}
+                                href={getTenantHref(sub.href)}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`block rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                                  subActive 
+                                    ? isLightSidebar ? 'text-slate-900 bg-slate-100 font-semibold' : 'text-white bg-white/15 font-semibold' 
+                                    : isLightSidebar ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                }`}
+                                style={subActive ? { borderLeft: `2px solid ${theme.accentColor}` } : {}}
+                              >
+                                {sub.name}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
 
-              return (
-                <Link
-                  key={item.name}
-                  href={item.isComingSoon ? '#' : getTenantHref(item.href)}
-                  onClick={() => !item.isComingSoon && setMobileMenuOpen(false)}
-                  className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive 
-                      ? 'shadow-xs font-semibold' 
-                      : isLightSidebar ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                  } ${item.isComingSoon ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  style={
-                    isActive
-                      ? {
-                          backgroundColor: theme.sidebarActiveColor || theme.primaryColor,
-                          color: theme.sidebarActiveTextColor || '#FFFFFF',
-                          borderRadius: theme.borderRadius,
-                          borderLeft: `3px solid ${theme.accentColor}`,
-                        }
-                      : {}
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon 
-                      className={`h-4 w-4 ${!isActive ? (isLightSidebar ? 'text-slate-500' : 'text-slate-400') : ''}`} 
-                      style={isActive ? { color: theme.sidebarActiveTextColor || '#FFFFFF' } : {}}
-                    />
-                    <span>{item.name}</span>
-                  </div>
-                  {item.isComingSoon && (
-                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${isLightSidebar ? 'bg-slate-200 text-slate-600' : 'bg-black/40 text-slate-400'}`}>
-                      Soon
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.isComingSoon ? '#' : getTenantHref(item.href)}
+                    onClick={() => !item.isComingSoon && setMobileMenuOpen(false)}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive 
+                        ? 'shadow-xs font-semibold' 
+                        : isLightSidebar ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    } ${item.isComingSoon ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    style={
+                      isActive
+                        ? {
+                            backgroundColor: theme.sidebarActiveColor || theme.primaryColor,
+                            color: theme.sidebarActiveTextColor || '#FFFFFF',
+                            borderRadius: theme.borderRadius,
+                            borderLeft: `3px solid ${theme.accentColor}`,
+                          }
+                        : {}
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon 
+                        className={`h-4 w-4 ${!isActive ? (isLightSidebar ? 'text-slate-500' : 'text-slate-400') : ''}`} 
+                        style={isActive ? { color: theme.sidebarActiveTextColor || '#FFFFFF' } : {}}
+                      />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.isComingSoon && (
+                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${isLightSidebar ? 'bg-slate-200 text-slate-600' : 'bg-black/40 text-slate-400'}`}>
+                        Soon
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {/* Domain Settings Category */}
-          <div className="space-y-1">
-            <p className={`px-3 text-[10px] font-bold tracking-wider uppercase ${isLightSidebar ? 'text-slate-400' : 'text-slate-400/80'}`}>
-              Branding & Keys
-            </p>
-            {filteredDomainItems.map((item) => {
-              const isActive = isRouteActive(item.href);
-              return (
-                <Link
-                  key={item.name}
-                  href={item.isComingSoon ? '#' : getTenantHref(item.href)}
-                  onClick={() => !item.isComingSoon && setMobileMenuOpen(false)}
-                  className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive 
-                      ? 'shadow-xs font-semibold' 
-                      : isLightSidebar ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                  } ${item.isComingSoon ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  style={
-                    isActive
-                      ? {
-                          backgroundColor: theme.sidebarActiveColor || theme.primaryColor,
-                          color: theme.sidebarActiveTextColor || '#FFFFFF',
-                          borderRadius: theme.borderRadius,
-                          borderLeft: `3px solid ${theme.accentColor}`,
-                        }
-                      : {}
-                  }
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon 
-                      className={`h-4 w-4 ${!isActive ? (isLightSidebar ? 'text-slate-500' : 'text-slate-400') : ''}`} 
-                      style={isActive ? { color: theme.sidebarActiveTextColor || '#FFFFFF' } : {}}
-                    />
-                    <span>{item.name}</span>
-                  </div>
-                  {item.isComingSoon && (
-                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${isLightSidebar ? 'bg-slate-200 text-slate-600' : 'bg-black/40 text-slate-400'}`}>
-                      Soon
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
+          {filteredDomainItems.length > 0 && (
+            <div className="space-y-1">
+              <p className={`px-3 text-[10px] font-bold tracking-wider uppercase ${isLightSidebar ? 'text-slate-400' : 'text-slate-400/80'}`}>
+                Branding & Keys
+              </p>
+              {filteredDomainItems.map((item) => {
+                const isActive = isRouteActive(item.href);
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.isComingSoon ? '#' : getTenantHref(item.href)}
+                    onClick={() => !item.isComingSoon && setMobileMenuOpen(false)}
+                    className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive 
+                        ? 'shadow-xs font-semibold' 
+                        : isLightSidebar ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    } ${item.isComingSoon ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    style={
+                      isActive
+                        ? {
+                            backgroundColor: theme.sidebarActiveColor || theme.primaryColor,
+                            color: theme.sidebarActiveTextColor || '#FFFFFF',
+                            borderRadius: theme.borderRadius,
+                            borderLeft: `3px solid ${theme.accentColor}`,
+                          }
+                        : {}
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon 
+                        className={`h-4 w-4 ${!isActive ? (isLightSidebar ? 'text-slate-500' : 'text-slate-400') : ''}`} 
+                        style={isActive ? { color: theme.sidebarActiveTextColor || '#FFFFFF' } : {}}
+                      />
+                      <span>{item.name}</span>
+                    </div>
+                    {item.isComingSoon && (
+                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${isLightSidebar ? 'bg-slate-200 text-slate-600' : 'bg-black/40 text-slate-400'}`}>
+                        Soon
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         {/* BOTTOM USER PANEL */}
@@ -526,13 +557,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         {/* HEADER BAR */}
         <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-xs">
           {/* Breadcrumbs / Mobile trigger */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button 
               className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden cursor-pointer"
               onClick={() => setMobileMenuOpen(true)}
             >
               <Menu className="h-5 w-5" />
             </button>
+
+            <TenantSwitcher />
 
             <nav className="hidden items-center gap-1.5 text-sm font-medium text-slate-500 sm:flex">
               <Link href="/dashboard" className="text-slate-400 hover:text-slate-600 transition-colors">
