@@ -83,6 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined' && (response.data as any)?.token) {
           localStorage.setItem('v3c_token', (response.data as any).token);
         }
+        if (typeof window !== 'undefined' && response.data?.user?.tenantId && !localStorage.getItem('v3c_active_tenant_id')) {
+          localStorage.setItem('v3c_active_tenant_id', response.data.user.tenantId);
+          if (response.data.user.tenantSlug) {
+            localStorage.setItem('v3c_active_tenant_slug', response.data.user.tenantSlug);
+          }
+        }
         return response.data;
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {

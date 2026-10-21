@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
+import { MonthlyTokenMeteringCard } from '@/components/billing/monthly-token-metering-card';
+import { XPayTokenTopupCard } from '@/components/billing/xpay-token-topup-card';
+import { DiscountInvoiceCard } from '@/components/billing/discount-invoice-card';
 import {
   CreditCard,
   Download,
@@ -172,7 +175,6 @@ export default function BillingPage() {
       {/* Date & Time Range + Super Admin Tenant Switcher Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         <div className="flex flex-wrap items-center gap-4">
-          {/* Tenant Switcher Filter for Super Admin */}
           {isSuperAdmin && (
             <div className="flex items-center gap-2 pr-4 border-r border-slate-200">
               <Building2 className="h-4 w-4 text-indigo-600" />
@@ -192,7 +194,6 @@ export default function BillingPage() {
             </div>
           )}
 
-          {/* Time Filter */}
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-slate-400" />
             <span className="text-xs font-semibold text-slate-700">Billing Period:</span>
@@ -287,12 +288,11 @@ export default function BillingPage() {
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Cost */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs relative">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
               Accrued API Cost ($)
-              <div className="relative cursor-help" title="Combined calculated cost for text chat + realtime voice API calls based on official OpenAI token rates">
+              <div className="relative cursor-help" title="Combined calculated cost for text chat + realtime voice API calls">
                 <HelpCircle className="h-3.5 w-3.5 text-slate-400 hover:text-indigo-600 transition" />
               </div>
             </span>
@@ -308,12 +308,11 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Card 2: Voice Cost */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
               Voice Agent API Cost
-              <div className="relative cursor-help" title="Realtime Voice API cost (gpt-realtime-mini @ $10.00 / $20.00 per 1M tokens)">
+              <div className="relative cursor-help" title="Realtime Voice API cost">
                 <HelpCircle className="h-3.5 w-3.5 text-slate-400 hover:text-indigo-600 transition" />
               </div>
             </span>
@@ -329,12 +328,11 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Card 3: Chat Cost */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
               Text Chat API Cost
-              <div className="relative cursor-help" title="Text Chat API cost (gpt-4o-mini @ $0.15 / $0.60 per 1M tokens)">
+              <div className="relative cursor-help" title="Text Chat API cost">
                 <HelpCircle className="h-3.5 w-3.5 text-slate-400 hover:text-indigo-600 transition" />
               </div>
             </span>
@@ -350,12 +348,11 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Card 4: Total Tokens */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
               Total Token Consumption
-              <div className="relative cursor-help" title="Total prompt + completion tokens consumed during the selected period">
+              <div className="relative cursor-help" title="Total prompt + completion tokens consumed">
                 <HelpCircle className="h-3.5 w-3.5 text-slate-400 hover:text-indigo-600 transition" />
               </div>
             </span>
@@ -371,6 +368,15 @@ export default function BillingPage() {
           </div>
         </div>
       </div>
+
+      {/* Phase 5 Token Balance Enforcement & XPay Sandbox Top-Ups */}
+      <XPayTokenTopupCard onTopupComplete={loadBillingSummary} />
+
+      {/* Blueprint Sec 6.3 & 6.5: Discount Engine & Large-Order Enterprise Invoice Flow */}
+      <DiscountInvoiceCard onUpdated={loadBillingSummary} />
+
+      {/* Phase 4 Monthly LLM Token Metering Breakdown Card */}
+      <MonthlyTokenMeteringCard />
 
       {/* Channel Usage & Cost Breakdown Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">

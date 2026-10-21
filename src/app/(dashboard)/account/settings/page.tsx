@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { User, Shield, Lock, UploadCloud, Save, RefreshCw } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
+import { OtpVerificationCard } from '@/components/account/otp-verification-card';
 
 interface ProfileData {
   id: number;
@@ -29,6 +30,7 @@ export default function AccountSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
 
   const { data: profile, isLoading, refetch, isRefetching } = useQuery<ProfileData>({
     queryKey: ['account-profile'],
@@ -69,7 +71,7 @@ export default function AccountSettingsPage() {
 
   const updatePasswordMutation = useMutation({
     mutationFn: async () => {
-      await api.put('/api/account/password', { currentPassword, newPassword });
+      await api.put('/api/account/password', { currentPassword, newPassword, otpCode: otpCode || undefined });
     },
     onSuccess: () => {
       toast.success('Password changed successfully!');
@@ -113,6 +115,9 @@ export default function AccountSettingsPage() {
           Refresh
         </button>
       </div>
+
+      {/* Step-Up OTP Verification & Orchestrator OTP Policy Card */}
+      <OtpVerificationCard onAdminOtpVerified={(code) => setOtpCode(code)} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Profile Card */}

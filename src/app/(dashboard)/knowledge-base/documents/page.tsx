@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { UploadCloud, File, Trash2, RefreshCw, ExternalLink, HardDrive, CheckCircle } from 'lucide-react';
-import { api, ApiError } from '@/lib/api';
+import { api } from '@/lib/api';
+import { MultiKbManager } from '@/components/knowledge-base/multi-kb-manager';
 
 interface DocumentItem {
   id: number;
@@ -54,7 +55,7 @@ export default function DocumentsPage() {
       toast.success(`'${selectedFile.name}' uploaded successfully to storage!`);
       setSelectedFile(null);
       queryClient.invalidateQueries({ queryKey: ['kb-documents'] });
-    } catch (error) {
+    } catch {
       toast.error('Failed to upload document to storage.');
     } finally {
       setIsUploading(false);
@@ -83,10 +84,10 @@ export default function DocumentsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <UploadCloud className="h-6 w-6 text-indigo-600" />
-            Documents
+            Documents &amp; Knowledge Base Vector Ingestion
           </h1>
           <p className="text-sm text-slate-500">
-            Upload PDF, DOCX, and TXT documents directly to storage bucket.
+            Upload TXT and PDF files directly to scoped Knowledge Bases for RAG vector chunking, or manage S3 storage files.
           </p>
         </div>
         <button
@@ -99,16 +100,19 @@ export default function DocumentsPage() {
         </button>
       </div>
 
-      {/* File Upload Box */}
+      {/* Phase 2/3 Multi-KB Base64 File Upload & Processing Engine */}
+      <MultiKbManager />
+
+      {/* Legacy S3 File Upload Box */}
       <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-8 text-center shadow-sm hover:border-indigo-400 transition-colors">
         <div className="flex flex-col items-center justify-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-3">
             <HardDrive className="h-7 w-7" />
           </div>
 
-          <h3 className="text-base font-bold text-slate-900">Upload to Storage</h3>
+          <h3 className="text-base font-bold text-slate-900">Upload to S3 Storage Bucket</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-sm">
-            Drag & drop files here, or click to browse (PDF, DOCX, TXT up to 50MB).
+            Drag &amp; drop files here, or click to browse (PDF, DOCX, TXT up to 50MB).
           </p>
 
           <input
@@ -147,9 +151,9 @@ export default function DocumentsPage() {
         </div>
       </div>
 
-      {/* Documents Table */}
+      {/* Stored Documents Table */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">Stored Documents ({documents.length})</h3>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">Stored S3 Documents ({documents.length})</h3>
 
         {documents.length > 0 ? (
           <div className="overflow-x-auto rounded-xl border border-slate-100">
@@ -210,7 +214,7 @@ export default function DocumentsPage() {
             </table>
           </div>
         ) : (
-          <p className="text-xs text-slate-400 italic">No documents uploaded to storages yet.</p>
+          <p className="text-xs text-slate-400 italic">No documents uploaded to S3 storage yet.</p>
         )}
       </div>
     </div>

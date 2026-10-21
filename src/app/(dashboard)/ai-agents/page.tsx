@@ -5,6 +5,9 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import { toast } from 'sonner';
 import { showConfirmToast } from '@/components/ui/confirm-toast';
+import { AgentSpecialistKbCard } from '@/components/agents/agent-specialist-kb-card';
+import { ByokVaultCard } from '@/components/agents/byok-vault-card';
+import { VoicePersonaLibraryCard } from '@/components/agents/voice-persona-library-card';
 import {
   Cpu,
   Mic,
@@ -17,15 +20,16 @@ import {
   CheckCircle,
   Link as LinkIcon,
   Globe,
-  MessageSquare,
-  Volume2,
-  ShieldAlert,
   Edit3
 } from 'lucide-react';
 
 interface AgentItem {
   id: string;
   name: string;
+  type?: string;
+  isDefault?: boolean;
+  knowledgeBaseId?: string | null;
+  KnowledgeBase?: { id: string; name: string } | null;
   voice: string;
   language: string;
   systemPrompt: string;
@@ -89,7 +93,8 @@ export default function AiAgentsPage() {
       const list = res.data || [];
       setAgents(list);
       if (list.length > 0) {
-        setSelectedAgent(list[0]);
+        const currentSelected = selectedAgent ? list.find((a: AgentItem) => a.id === selectedAgent.id) : null;
+        setSelectedAgent(currentSelected || list[0]);
       }
     } catch (err: any) {
       console.error('Failed to load agents:', err);
@@ -106,6 +111,9 @@ export default function AiAgentsPage() {
 
       await api.put(`/api/agents/${selectedAgent.id}`, {
         name: selectedAgent.name,
+        type: selectedAgent.type || 'general',
+        isDefault: Boolean(selectedAgent.isDefault),
+        knowledgeBaseId: selectedAgent.knowledgeBaseId ?? null,
         voice: selectedAgent.voice,
         language: selectedAgent.language,
         systemPrompt: selectedAgent.systemPrompt,
@@ -130,7 +138,7 @@ export default function AiAgentsPage() {
         });
       }
 
-      setSuccessMsg('Agent & Retrieval settings saved successfully!');
+      setSuccessMsg('Agent, Specialist Role, Linked KB & Retrieval settings saved successfully!');
       setTimeout(() => setSuccessMsg(null), 4000);
       loadAgents();
     } catch (err: any) {
@@ -182,6 +190,7 @@ export default function AiAgentsPage() {
     try {
       const res: any = await api.post('/api/agents', {
         name: 'New AI Agent',
+        type: 'general',
         voice: 'shimmer',
         language: 'English',
         systemPrompt: 'You are an AI Virtual Customer Assistant.',
@@ -256,10 +265,10 @@ export default function AiAgentsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <Cpu className="h-7 w-7 text-indigo-600" />
-            AI Agents &amp; Retrieval Settings
+            AI Agents &amp; Specialist KB Routing
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Configure AI voice parameters, confidence-based vector search thresholds, system prompts, and out-of-scope topic links.
+            Configure specialist intent roles, linked Knowledge Bases, voice parameters, vector thresholds, and system prompts.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -315,14 +324,21 @@ export default function AiAgentsPage() {
                       : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <div>
-                    <div className="text-sm font-semibold text-slate-900">{agent.name || 'AI Agent'}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">Voice: {agent.voice || 'alloy'} | {agent.language || 'English'}</div>
+                  <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-slate-900 truncate">{agent.name || 'AI Agent'}</span>
+                      <span className="rounded-md bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-indigo-700">
+                        {agent.type || 'general'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5 truncate">
+                      Voice: {agent.voice || 'alloy'} | KB: {agent.KnowledgeBase?.name || 'Global'}
+                    </div>
                   </div>
                   {agent.isActive ? (
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-xs" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-xs shrink-0" />
                   ) : (
-                    <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-300 shrink-0" />
                   )}
                 </button>
               ))}
@@ -343,7 +359,7 @@ export default function AiAgentsPage() {
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                <Mic className="h-4 w-4" /> Voice & Speech
+                <Mic className="h-4 w-4" /> Role, KB &amp; Voice
               </button>
               <button
                 onClick={() => setActiveTab('retrieval')}
@@ -353,7 +369,7 @@ export default function AiAgentsPage() {
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                <Sliders className="h-4 w-4" /> Confidence & Fallback
+                <Sliders className="h-4 w-4" /> Confidence &amp; Fallback
               </button>
               <button
                 onClick={() => setActiveTab('topic_links')}
@@ -377,9 +393,23 @@ export default function AiAgentsPage() {
               </button>
             </div>
 
-            {/* Tab 1: Voice & Speech */}
+            {/* Tab 1: Role, KB & Voice */}
             {activeTab === 'voice' && (
               <div className="rounded-b-2xl border border-t-0 border-slate-200 bg-white p-6 space-y-6 shadow-xs">
+                <ByokVaultCard />
+
+                <AgentSpecialistKbCard
+                  agentType={selectedAgent.type || 'general'}
+                  isDefault={Boolean(selectedAgent.isDefault)}
+                  knowledgeBaseId={selectedAgent.knowledgeBaseId ?? null}
+                  onChange={(updates) => setSelectedAgent({ ...selectedAgent, ...updates })}
+                />
+
+                <VoicePersonaLibraryCard
+                  agentId={selectedAgent.id}
+                  onUpdated={loadAgents}
+                />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Agent Name</label>
@@ -482,7 +512,7 @@ export default function AiAgentsPage() {
                                 nextLangs = Array.from(new Set([...currentLangs, lang]));
                               } else {
                                 nextLangs = currentLangs.filter((l) => l !== lang);
-                                if (nextLangs.length === 0) nextLangs = ['English']; // keep at least one
+                                if (nextLangs.length === 0) nextLangs = ['English'];
                               }
                               setSelectedAgent({ ...selectedAgent, supportedLanguages: nextLangs });
                             }}
@@ -492,102 +522,6 @@ export default function AiAgentsPage() {
                         </label>
                       );
                     })}
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">Enable Urdu and English multi-lingual support for voice and text chat.</p>
-                </div>
-
-                {/* Voice Sensitivity & Pipeline Timing Controls */}
-                <div className="border-t border-slate-200 pt-6 space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
-                    <Sliders className="h-4 w-4 text-indigo-600" /> Voice Sensitivity & Pipeline Timing
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                        VAD Noise Sensitivity Threshold ({selectedAgent.voiceSettings?.vadThreshold ?? 0.65})
-                      </label>
-                      <p className="text-[11px] text-slate-500 mb-2">Higher values (0.65 - 0.80) ignore coughing, breathing & background noise.</p>
-                      <input
-                        type="range"
-                        min="0.40"
-                        max="0.90"
-                        step="0.05"
-                        value={selectedAgent.voiceSettings?.vadThreshold ?? 0.65}
-                        onChange={(e) => setSelectedAgent({
-                          ...selectedAgent,
-                          voiceSettings: {
-                            ...(selectedAgent.voiceSettings || {}),
-                            vadThreshold: parseFloat(e.target.value)
-                          }
-                        })}
-                        className="w-full accent-indigo-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                        End-of-Speech Silence Duration ({selectedAgent.voiceSettings?.vadSilenceDurationMs ?? 800} ms)
-                      </label>
-                      <p className="text-[11px] text-slate-500 mb-2">Silence window required before AI considers user turn complete.</p>
-                      <input
-                        type="range"
-                        min="300"
-                        max="1500"
-                        step="50"
-                        value={selectedAgent.voiceSettings?.vadSilenceDurationMs ?? 800}
-                        onChange={(e) => setSelectedAgent({
-                          ...selectedAgent,
-                          voiceSettings: {
-                            ...(selectedAgent.voiceSettings || {}),
-                            vadSilenceDurationMs: parseInt(e.target.value, 10)
-                          }
-                        })}
-                        className="w-full accent-indigo-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                        Natural Thinking Delay ({selectedAgent.voiceSettings?.voiceResponseDelayMs ?? 600} ms)
-                      </label>
-                      <p className="text-[11px] text-slate-500 mb-2">Natural pause before AI starts speaking after user turn.</p>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1500"
-                        step="100"
-                        value={selectedAgent.voiceSettings?.voiceResponseDelayMs ?? 600}
-                        onChange={(e) => setSelectedAgent({
-                          ...selectedAgent,
-                          voiceSettings: {
-                            ...(selectedAgent.voiceSettings || {}),
-                            voiceResponseDelayMs: parseInt(e.target.value, 10)
-                          }
-                        })}
-                        className="w-full accent-indigo-600"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-                        Minimum Word Count Gate ({selectedAgent.voiceSettings?.minWordCount ?? 2} words)
-                      </label>
-                      <p className="text-[11px] text-slate-500 mb-2">Ignores single-word noises ("aaa", "hmm") below this word count.</p>
-                      <input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={selectedAgent.voiceSettings?.minWordCount ?? 2}
-                        onChange={(e) => setSelectedAgent({
-                          ...selectedAgent,
-                          voiceSettings: {
-                            ...(selectedAgent.voiceSettings || {}),
-                            minWordCount: parseInt(e.target.value, 10) || 2
-                          }
-                        })}
-                        className="w-full rounded-xl bg-white border border-slate-300 px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
-                      />
-                    </div>
                   </div>
                 </div>
               </div>
@@ -614,22 +548,8 @@ export default function AiAgentsPage() {
                     className="w-full accent-indigo-600"
                   />
                   <p className="mt-1.5 text-xs text-slate-500">
-                    Queries with vector similarity below this threshold will trigger dynamic fallback guidance. The AI agent will rely on System Role & Behavioral Instructions to answer multi-turn follow-ups or decline out-of-scope queries.
+                    Queries with vector similarity below this threshold will trigger dynamic fallback guidance.
                   </p>
-                </div>
-
-                <div className="rounded-xl bg-indigo-50/70 border border-indigo-100 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-indigo-100 p-2 text-indigo-700 mt-0.5">
-                      <Sliders className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h5 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">System Instruction Managed Fallback Protocol</h5>
-                      <p className="mt-1 text-xs text-indigo-800/90 leading-relaxed">
-                        Out-of-scope queries and multi-turn follow-ups are dynamically governed by your <strong>System Instructions</strong> tab. Hardcoded static refusal messages have been removed to ensure natural, seamless multi-turn conversations.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -696,7 +616,7 @@ export default function AiAgentsPage() {
                     ))
                   ) : (
                     <div className="text-center py-8 text-xs text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                      No topic links configured yet. Click "Auto-Import from KB" to pull from crawled pages.
+                      No topic links configured yet. Click &quot;Auto-Import from KB&quot; to pull from crawled pages.
                     </div>
                   )}
                 </div>
@@ -706,7 +626,7 @@ export default function AiAgentsPage() {
             {/* Tab 4: System Instructions */}
             {activeTab === 'prompt' && (
               <div className="rounded-b-2xl border border-t-0 border-slate-200 bg-white p-6 space-y-4 shadow-xs">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">System Role & Behavioral Instructions</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">System Role &amp; Behavioral Instructions</label>
                 <textarea
                   rows={8}
                   value={selectedAgent.systemPrompt || ''}

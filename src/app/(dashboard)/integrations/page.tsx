@@ -5,6 +5,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Cpu, Plus, Shield, RefreshCw, Activity, Trash2, CheckCircle } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
+import { WebhookMarketplacePanel } from '@/components/integrations/webhook-marketplace-panel';
+import { WorkflowBuilderPanel } from '@/components/integrations/workflow-builder-panel';
+import { OutboundCampaignPanel } from '@/components/integrations/outbound-campaign-panel';
+import { OmnichannelAdaptersPanel } from '@/components/integrations/omnichannel-adapters-panel';
+import { ServerProvisioningPanel } from '@/components/integrations/server-provisioning-panel';
 
 interface IntegrationItem {
   id: string;
@@ -132,6 +137,26 @@ export default function IntegrationsPage() {
           Third-party integrations can execute external API tools during AI agent sessions. Managed by Super Admins.
         </span>
       </div>
+
+      {/* Phase 6: API Marketplace Connectors, Outbound/Inbound Webhooks & Mid-Conversation Tools */}
+      <WebhookMarketplacePanel
+        onUpdated={() => {
+          refetchIntegrations();
+          queryClient.invalidateQueries({ queryKey: ['integration-logs'] });
+        }}
+      />
+
+      {/* Phase 8: Workflow Engine (Wizard & Visual Canvas Builder) */}
+      <WorkflowBuilderPanel />
+
+      {/* Phase 9: Outbound Voice Campaign Engine & Company DNC Scrubbing */}
+      <OutboundCampaignPanel />
+
+      {/* Phase 10: Omnichannel Reach Add-Ons (Instagram, Messenger & Mobile SDK) */}
+      <OmnichannelAdaptersPanel />
+
+      {/* Phase 11: Remote Server 2 (KB Vector) & Server 3 (Conversations/Audit) Provisioning */}
+      <ServerProvisioningPanel />
 
       {/* Tabs */}
       <div className="flex border-b border-slate-200 gap-6">

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
+import { CsatKbGapReportPanel } from '@/components/analytics/csat-kb-gap-report-panel';
 import {
   BarChart3,
   MessageSquare,
@@ -241,7 +242,8 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Filter Toolbar: Period + Custom Date-Time Picker + Tenant Switcher */}
+      {/*Filter Toolbar: Period + Custom Date-Time Picker + Tenant Switcher */}
+      <CsatKbGapReportPanel period={period} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
         {/* Period Selector */}
         <div className="flex items-center gap-2">

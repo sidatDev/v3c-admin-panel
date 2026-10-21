@@ -39,7 +39,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     }
   }
 
-  // Attach active tenant ID if set (for L1 group multi-tenant switching)
+  // Attach active tenant ID if set (for L1 group multi-tenant switching and dashboard APIs)
   if (typeof window !== 'undefined' && !headers.has('x-tenant-id')) {
     const activeTenantId = localStorage.getItem('v3c_active_tenant_id');
     if (activeTenantId) {
@@ -110,6 +110,13 @@ export const api = {
       ...options, 
       method: 'PUT', 
       body: body instanceof FormData ? body : JSON.stringify(body) 
+    }),
+
+  patch: <T>(path: string, body?: any, options?: RequestInit) =>
+    request<T>(path, {
+      ...options,
+      method: 'PATCH',
+      body: body instanceof FormData ? body : JSON.stringify(body)
     }),
     
   delete: <T>(path: string, options?: RequestInit) => 
